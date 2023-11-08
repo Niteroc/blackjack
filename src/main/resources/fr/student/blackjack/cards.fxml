@@ -10,7 +10,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="fr.student.blackjack.CardsController">
+<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1">
   <children>
     <AnchorPane fx:id="mainPane" maxHeight="-1.0" maxWidth="-1.0" prefHeight="-1.0" prefWidth="-1.0" style="-fx-background-color: #00512c;" VBox.vgrow="ALWAYS">
       <children>
@@ -34,15 +34,15 @@
                   <Button fx:id="bet25" mnemonicParsing="false" text="25" />
               </buttons>
             </ButtonBar>
-            <Text fx:id="dealerTotal" layoutX="560.0" layoutY="74.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Main du croupier" textAlignment="CENTER" wrappingWidth="180.0">
+            <Text fx:id="dealerTotal" layoutX="520.0" layoutY="74.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Main du croupier" textAlignment="CENTER" wrappingWidth="240.0">
                <font>
                   <Font name="HP Simplified" size="25.0" />
                </font>
             </Text>
-            <ImageView fx:id="dealercard1" fitHeight="225.0" fitWidth="150.0" layoutX="560.0" layoutY="105.0" pickOnBounds="true" preserveRatio="true" />
-            <ImageView fx:id="dealercard2" fitHeight="225.0" fitWidth="150.0" layoutX="570.0" layoutY="105.0" pickOnBounds="true" preserveRatio="true" />
+            <ImageView fx:id="dealercard1" fitHeight="225.0" fitWidth="150.0" layoutX="520.0" layoutY="105.0" pickOnBounds="true" preserveRatio="true" />
+            <ImageView fx:id="dealercard2" fitHeight="225.0" fitWidth="150.0" layoutX="550.0" layoutY="105.0" pickOnBounds="true" preserveRatio="true" />
             <ImageView fx:id="dealercard3" fitHeight="225.0" fitWidth="150.0" layoutX="580.0" layoutY="105.0" pickOnBounds="true" preserveRatio="true" />
-            <ImageView fx:id="dealercard4" fitHeight="225.0" fitWidth="150.0" layoutX="590.0" layoutY="105.0" pickOnBounds="true" preserveRatio="true" />
+            <ImageView fx:id="dealercard4" fitHeight="225.0" fitWidth="150.0" layoutX="610.0" layoutY="105.0" pickOnBounds="true" preserveRatio="true" />
             <ButtonBar fx:id="chips1" layoutX="1001.0" layoutY="701.0">
                <buttons>
                   <Button fx:id="bet50" mnemonicParsing="false" text="50" />

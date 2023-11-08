@@ -1,4 +1,6 @@
-package fr.student.blackjack;
+package server;
+
+import table.TableSR;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -14,34 +16,27 @@ import java.util.logging.Logger;
 public class Server {
     private static final int PORT = 12345;
     private static final int MAX_CLIENTS = 5;
-    static final List<ClientHandler> clients = new ArrayList<>();
     private static final Logger logger = Logger.getLogger(Server.class.getName());
-
-    public static void afficherNombreClient() {
-        logger.info("Connexion " + clients.size() + "/" + MAX_CLIENTS);
-    }
+    private static ThreadPoolExecutor tpe;
 
     public static void main(String[] args) {
         ServerSocket serverSocket = null;
-        ThreadPoolExecutor tpe = new ThreadPoolExecutor(
-                MAX_CLIENTS, MAX_CLIENTS,
-                60L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>()
-        );
+        tpe = new ThreadPoolExecutor(MAX_CLIENTS, MAX_CLIENTS, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
 
         try {
             serverSocket = new ServerSocket(PORT);
             logger.info("Serveur en attente de connexions sur le port " + PORT);
 
+
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 logger.info("Nouvelle connexion acceptée.");
 
-                if (clients.size() < MAX_CLIENTS) {
-                    ClientHandler clientHandler = new ClientHandler(clientSocket);
-                    clients.add(clientHandler);
+                if (true) {
+                    TableHandler tableHandler = new TableHandler();
+                    ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler);
                     tpe.execute(clientHandler);
-                    afficherNombreClient();
+                    tpe.execute(tableHandler);
                 } else {
                     logger.warning("Nombre maximum de clients atteint. Nouvelle connexion refusée.");
                     clientSocket.close();
