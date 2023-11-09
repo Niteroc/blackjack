@@ -20,11 +20,13 @@ public class Client implements Serializable {
 
     private String pseudo = "";
 
-    private static BufferedReader reader = null;
-    private static PrintWriter writer = null;
-    private static ObjectOutputStream writerObject = null;
-    private static ObjectInputStream readerObject = null;
-    private static transient Socket socket; // Ajoutez une variable membre pour le socket
+    private transient BufferedReader reader = null;
+    private transient PrintWriter writer = null;
+    private transient ObjectOutputStream writerObject = null;
+    private transient ObjectInputStream readerObject = null;
+    private transient Socket socket; // Ajoutez une variable membre pour le socket
+
+    private Client clientSave;
 
     public Client(Socket socket) {
 
@@ -39,6 +41,37 @@ public class Client implements Serializable {
 
             readerObject = new ObjectInputStream(socket.getInputStream());
             writerObject = new ObjectOutputStream(socket.getOutputStream());
+
+            SwingUtilities.invokeLater(GUI::new);
+
+            sendClient(this); // premier envoi pour s'initialiser
+
+            pseudo += "j";
+
+            TableSR tbsr;
+
+            Thread.sleep(1000); // on attend une seconde pour être sûr que la table soit envoyée
+
+            while (true) {
+                try {
+                    clientSave = this;
+                    logger.info("En attente d'une nouvelle table");
+                    try{
+                        tbsr = readTable();
+                        logger.info("Maj de la table " + tbsr.getTableHandlerId());
+                        refreshTable();
+                        logger.info("Rafraichissement de la vue");
+                    }catch(Exception e){
+                        logger.info(e.getMessage());
+                        // ne rien faire -- skip la lecture
+                    }
+
+                    //if(!clientSave.equals(this))sendClient(this); // le client a été modifié
+
+                } catch (Exception exc) {
+                    logger.log(Level.SEVERE, "erreur", exc);
+                }
+            }
 
         } catch (Exception e) {
             System.out.println("exception: " + e);
@@ -61,8 +94,7 @@ public class Client implements Serializable {
 
             Socket socket = null;
             try {
-                String server = null;
-                InetAddress addr = InetAddress.getByName(server);
+                InetAddress addr = InetAddress.getByName(null);
                 System.out.println("addr = " + addr);
                 socket = new Socket(addr, 12345);
                 System.out.println("socket = " + socket);
@@ -72,33 +104,6 @@ public class Client implements Serializable {
             }
 
             Client c = new Client(socket);
-
-            SwingUtilities.invokeLater(GUI::new);
-
-            sendClient(c);
-
-            System.out.println("1");
-            while (true) {
-                TableSR tbsr = null;
-                try {
-                    System.out.println("2");
-                    tbsr = readTable();
-                    System.out.println("here");
-                    // c = tbsr.getCurrentClient(socket.getID);
-                    /// Extraction de moi-même
-
-                    refreshTable();
-
-                    sendClient(c);
-
-                } catch (Exception exc) {
-                    logger.log(Level.SEVERE, "erreur", exc);
-                }
-                if (tbsr == null) break;
-
-            }
-
-            System.out.println("closing terminal...");
 
             try {
                 socket.close();
@@ -110,12 +115,12 @@ public class Client implements Serializable {
         }
     }
 
-    private static void sendClient(Client c) throws IOException, InterruptedException {
+    private synchronized void sendClient(Client c) throws IOException {
         writerObject.writeObject(c);
-        Thread.sleep(2000);
+        writerObject.flush();
     }
 
-    private static TableSR readTable() throws IOException, ClassNotFoundException {
+    private synchronized TableSR readTable() throws IOException, ClassNotFoundException {
         readerObject = new ObjectInputStream(socket.getInputStream());
         return (TableSR) readerObject.readObject();
     }

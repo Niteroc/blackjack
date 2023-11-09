@@ -1,7 +1,5 @@
 package server;
 
-import table.TableSR;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -21,11 +19,13 @@ public class Server {
 
     public static void main(String[] args) {
         ServerSocket serverSocket = null;
-        tpe = new ThreadPoolExecutor(MAX_CLIENTS, MAX_CLIENTS, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+        tpe = new ThreadPoolExecutor(MAX_CLIENTS*5, MAX_CLIENTS*5, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
 
         try {
             serverSocket = new ServerSocket(PORT);
             logger.info("Serveur en attente de connexions sur le port " + PORT);
+            TableHandler tableHandler = new TableHandler();
+            logger.info("La table " + tableHandler.getId() + " a été créée");
 
 
             while (true) {
@@ -33,7 +33,6 @@ public class Server {
                 logger.info("Nouvelle connexion acceptée.");
 
                 if (true) {
-                    TableHandler tableHandler = new TableHandler();
                     ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler);
                     tpe.execute(clientHandler);
                     tpe.execute(tableHandler);
@@ -44,6 +43,8 @@ public class Server {
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Erreur lors de l'exécution du serveur", e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         } finally {
             tpe.shutdown();
             if (serverSocket != null && !serverSocket.isClosed()) {

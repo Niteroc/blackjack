@@ -30,7 +30,7 @@ public class ClientHandler implements Runnable {
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
 
-    public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException {
+    public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException, InterruptedException {
         id = ++number;
         this.clientSocket = clientSocket;
         this.tableHandler = tableHandler;
@@ -47,6 +47,9 @@ public class ClientHandler implements Runnable {
 
         tableHandler.addClientHandler(this);
         tableHandler.updateClient(client);
+
+        tableHandler.writeFirstTable(this);
+
     }
 
     @Override
