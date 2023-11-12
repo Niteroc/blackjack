@@ -17,75 +17,80 @@ public class TableHandler implements Runnable {
 
     private ObjectOutputStream writerObject;
 
-    private static List<ClientHandler> clientHandlerList = new ArrayList<>();
+    private List<ClientHandler> clientHandlerList = new ArrayList<>();
 
-    private final TableSR tbsr = new TableSR();
+    private TableSR tbsr = new TableSR();
 
-    private TableHandler tableHandlerSave = null;
+    private List<Client> clientList = new ArrayList<>();
+    private List<Client> clientListSave = new ArrayList<>();
 
 
     public TableHandler() throws IOException {
     }
 
-    public synchronized void addClientHandler(ClientHandler ch) {
+    public void addClientHandler(ClientHandler ch) {
         clientHandlerList.add(ch);
     }
 
-    public synchronized void removeClientHandler(ClientHandler ch) {
+    public void removeClientHandler(ClientHandler ch) {
         clientHandlerList.remove(ch);
     }
 
     public void updateClient(Client c){
+        c.setBalance(c.getBalance()+10);
         tbsr.updateClient(c);
+        clientList = tbsr.getClientList();
     }
+
+    private boolean areListNotEquals() {
+
+        if((clientList.size() != clientListSave.size()))return true;
+
+        for(int i = 0 ; i < clientListSave.size() ; i++){
+            if(!clientList.get(i).hasSameProperty(clientListSave.get(i)))return true;
+        }
+
+        return false;
+    }
+
 
     @Override
     public void run() {
-
         while (true) { // en écoute des maj de la table du joueur
             try {
-                tableHandlerSave = this;
-
                 /// ACTION sur la table
 
-                // Envoi de la table si elle a été modifiée
-                if(!tableHandlerSave.equals(this))writeObject();
+                // Envoi de la table si elle a été modifiée (check des listes)
+                if (areListNotEquals()) {
+                    logger.info("Modification détectée. Ancienne liste : " + clientListSave);
+                    logger.info("Nouvelle liste : " + clientList);
+
+                    clientListSave.clear();
+                    clientListSave.addAll(clientList);
+
+                    writeObject();
+
+                    logger.info("clientListSave mise à jour : " + clientListSave);
+                }
+
+                Thread.sleep(1000);
 
             } catch (Exception ignored) {
             }
         }
     }
 
-    public synchronized void writeFirstTable(ClientHandler clientHandler) throws IOException, InterruptedException {
-        writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
-        writerObject.writeObject(tbsr);
-        writerObject.flush();
-        logger.info("Table " + tbsr + " envoyée");
-    }
-
-    private synchronized void writeObject() throws IOException, InterruptedException {
+    private synchronized void writeObject() throws IOException {
         for (ClientHandler clientHandler : clientHandlerList) {
             writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
             writerObject.writeObject(tbsr);
             writerObject.flush();
+            logger.info("Table " + tbsr + " envoyée à " + clientHandler.getClient().getPseudo());
         }
     }
 
     public static int getId() {
         return id;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TableHandler that = (TableHandler) o;
-        return Objects.equals(tbsr, that.tbsr);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(tbsr);
     }
 
     @Override

@@ -16,6 +16,17 @@ public class TableSR implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    public List<Client> getClientList() {
+        return clientList;
+    }
+
+    public Client getClientModification(Client client){
+        for (Client client1 : clientList){
+            if(client1.equals(client))return client1;
+        }
+        return client;
+    }
+
     private List<Client> clientList = new ArrayList<>();
 
     public TableSR() {}
@@ -26,10 +37,17 @@ public class TableSR implements Serializable {
 
     @Override
     public String toString() {
-        return "TableSR{" + "clientList=" + clientList + '}';
-    }
+        StringBuilder stringBuilder = new StringBuilder("TableSR{\n");
 
-    public synchronized void updateClient(Client c){
+        for (Client client : clientList) {
+            stringBuilder.append("\t").append(client).append('\n');
+        }
+
+        stringBuilder.append("}");
+
+        return stringBuilder.toString();
+    }
+    public void updateClient(Client c){
         logger.info(c.getPseudo() + " inséré/maj dans la table " + TableHandler.getId() + " // déjà existant : " + clientList.contains(c));
         if(!clientList.contains(c)){
             clientList.add(c);
