@@ -4,15 +4,15 @@ import client.Client;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
-
-    private int id;
-
-    private static int number = 1;
 
     public Socket getClientSocket() {
         return clientSocket;
@@ -28,13 +28,11 @@ public class ClientHandler implements Runnable {
     private Client client;
 
     private final ObjectInputStream readerObject;
-
     private final TableHandler tableHandler;
 
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
     public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException, InterruptedException {
-        id = number;
         this.clientSocket = clientSocket;
         this.tableHandler = tableHandler;
 
@@ -45,9 +43,8 @@ public class ClientHandler implements Runnable {
         } catch (ClassNotFoundException exc) {
         }
 
-        System.out.println("Le client (" + client.getId() + ") nommé " + client.getPseudo() + " a rejoint la table " + TableHandler.getId());
+        logger.info(client + " a rejoint la table " + TableHandler.getId());
 
-        logger.info("client : " + client);
         tableHandler.addClientHandler(this);
         tableHandler.updateClient(client);
 
@@ -57,27 +54,55 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             while (true) { // en écoute des maj du joueur
-                try {
-                    client = (Client) readerObject.readObject();
-                    System.out.println("Mise à jour reçue du client (" + client.getId() + ") - " + client.getPseudo() + " de la table " + TableHandler.getId());
-                    tableHandler.updateClient(client);
-                } catch (EOFException e) {
-                    // Aucune maj client reçue
-                } catch (ClassNotFoundException e) {
-                    throw new Exception("Erreur dans la désérialisation");
-                }
+                client = (Client) readerObject.readObject();
+                System.out.println("Mise à jour reçue du client (" + client.getId() + ") - " + client.getPseudo() + " de la table " + TableHandler.getId());
+                tableHandler.updateClient(client);
             }
 
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Fin de la communication avec le client " + client.getPseudo(), e);
+            logger.log(Level.INFO, "Fin de la communication avec le client " + client.getPseudo());
         } finally {
             try {
                 clientSocket.close();
+                tableHandler.removeClientHandler(this);
                 logger.info("Client " + client.getPseudo() + " déconnecté.");
+                saveClient(client);
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Erreur lors de la déconnexion du client ", e);
             }
         }
+    }
+
+    public void saveClient(Client client) {
+        List<Client> clients = loadClientsList();
+        clients.add(client);
+
+        try (ObjectOutputStream writer = new ObjectOutputStream(Files.newOutputStream(Paths.get("clients.ser")))) {
+            writer.writeObject(clients);
+            writer.flush();
+            logger.info("Client " + client.getPseudo() + " enregistré dans le fichier sérialisé.");
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Erreur lors de l'enregistrement du client dans le fichier sérialisé.", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked") // pour le cast de object en List<Client>
+    public static List<Client> loadClientsList() {
+        try (ObjectInputStream reader = new ObjectInputStream(new FileInputStream("clients.ser"))) {
+            Object object = reader.readObject();
+            if (object instanceof List) {
+                List<Client> loadedClients = (List<Client>) object;
+                logger.info("Liste de clients chargée depuis le fichier.");
+                return loadedClients;
+            } else {
+                logger.warning("Le fichier ne contient pas une liste de clients valide.");
+            }
+        } catch (FileNotFoundException e) {
+            logger.log(Level.WARNING, "Fichier pour les clients introuvable.", e);
+        } catch (IOException | ClassNotFoundException e) {
+            logger.log(Level.SEVERE, "Erreur lors du chargement de la liste des clients depuis le fichier.", e);
+        }
+        return new ArrayList<>();
     }
 
     @Override

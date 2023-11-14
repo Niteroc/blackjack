@@ -39,8 +39,12 @@ public class Server {
                 number++;
 
                 if (true) {
-                    ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler);
-                    tpe.execute(clientHandler);
+                    try{
+                        ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler);
+                        tpe.execute(clientHandler);
+                    }catch (Exception e){
+                        logger.info("Fermeture de la connexion");
+                    }
                 } else {
                     logger.warning("Nombre maximum de clients atteint. Nouvelle connexion refusée.");
                     clientSocket.close();
@@ -48,8 +52,6 @@ public class Server {
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Erreur lors de l'exécution du serveur", e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         } finally {
             tpe.shutdown();
             if (serverSocket != null && !serverSocket.isClosed()) {

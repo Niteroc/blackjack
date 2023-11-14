@@ -1,16 +1,22 @@
 package client;
 
 import gui.GUI;
+import qrcode.QrCode;
+import server.ClientHandler;
 import table.TableSR;
 
 import javax.swing.*;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Client implements Serializable {
     public String getId() {
@@ -35,20 +41,29 @@ public class Client implements Serializable {
 
     private transient GUI gui;
 
-    public Client(Socket socket) throws IOException {
+    private static int port = 12345;
 
-        do {
-            pseudo = JOptionPane.showInputDialog("Saisissez votre pseudo");
-        } while ((pseudo == null) || (pseudo.isEmpty()));
-
-        this.socket = socket;
-        writerObject = new ObjectOutputStream(socket.getOutputStream());
+    public Client(Socket socket)  {
 
         try {
+
+            do {
+                //QrCode qrCode = new QrCode();
+                //pseudo = qrCode.getPseudo();
+                pseudo = JOptionPane.showInputDialog("Saisissez votre pseudo");
+            } while ((pseudo == null) || (pseudo.isEmpty()));
+
+            this.socket = socket;
+            writerObject = new ObjectOutputStream(socket.getOutputStream());
+
 
             SwingUtilities.invokeLater(() -> {
                 gui = new GUI();  // Instanciation de GUI et stockage de la référence
             });
+
+            // On charge les valeurs du client, si elles avaient sauvegardées
+            Client client = findInList(ClientHandler.loadClientsList(), this);
+            reaffectAllStatus(client);
 
             sendClient(); // premier envoi pour s'initialiser
 
@@ -108,27 +123,28 @@ public class Client implements Serializable {
 
     public static void main(String[] args) {
         try {
+            Socket socket;
+            String host;
 
-            Socket socket = null;
-            try {
-                InetAddress addr = InetAddress.getByName(null);
-                System.out.println("addr = " + addr);
-                socket = new Socket(addr, 12345);
-                System.out.println("socket = " + socket);
-            } catch (Exception nos) {
-                System.out.println("no server running");
-                System.exit(5);
-            }
+            // Expression régulière pour une adresse IP
+            String ipRegex = "^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$";
+            Pattern pattern = Pattern.compile(ipRegex);
+            Matcher matcher;
+
+            do {
+                host = JOptionPane.showInputDialog("Saisissez l'ip (192.168.xxx.xxx)");
+                matcher = pattern.matcher(host);
+            } while (host.isEmpty() || !matcher.matches());
+
+            InetAddress addr = InetAddress.getByName(host);
+            System.out.println("Adresse = " + addr + ":" + port);
+            socket = new Socket(addr, port);
+            System.out.println("Socket = " + socket);
 
             new Client(socket);
-
-            try {
-                socket.close();
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Erreur de communication avec le serveur", e);
-            }
-        } catch (Exception e) {
-
+        } catch (Exception nos) {
+            System.out.println("Le serveur n'est pas joignable");
+            System.exit(5);
         }
     }
 
@@ -148,6 +164,13 @@ public class Client implements Serializable {
 
     public void setBalance(int balance) {
         this.balance = balance;
+    }
+
+    public Client findInList(List<Client> clientList, Client clientToFind){
+        for(Client client : clientList){
+            if(client.getPseudo().equals(clientToFind.getPseudo()))return client;
+        }
+        return clientToFind;
     }
 
     @Override

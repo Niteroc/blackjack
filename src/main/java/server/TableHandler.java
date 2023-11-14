@@ -34,6 +34,7 @@ public class TableHandler implements Runnable {
 
     public void removeClientHandler(ClientHandler ch) {
         clientHandlerList.remove(ch);
+        clientList.remove(ch.getClient());
     }
 
     public void updateClient(Client c){

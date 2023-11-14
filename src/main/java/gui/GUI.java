@@ -129,6 +129,9 @@ public class GUI {
     }
 
     public void testText(TableSR tbsr){
+        for(int i = 0 ; i < jLabels.length ; i++){
+            jLabels[i].setText("");
+        }
         for(int i = 0 ; i < tbsr.getClientList().size() ; i++){
             jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + "</html>");
             //jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + "<br/>" + tbsr.getClientList().get(i).getBalance() + "€</html>");
