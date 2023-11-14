@@ -73,8 +73,16 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    public static Client findInList(List<Client> clientList, Client clientToFind){
+        for(Client client : clientList){
+            if(client.getPseudo().equals(clientToFind.getPseudo()))return client;
+        }
+        return clientToFind;
+    }
+
     public void saveClient(Client client) {
         List<Client> clients = loadClientsList();
+        clients.remove(findInList(clients, client));
         clients.add(client);
 
         try (ObjectOutputStream writer = new ObjectOutputStream(Files.newOutputStream(Paths.get("clients.ser")))) {

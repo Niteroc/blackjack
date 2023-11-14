@@ -6,6 +6,8 @@ import server.ClientHandler;
 import table.TableSR;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -45,24 +47,84 @@ public class Client implements Serializable {
 
     public Client(Socket socket)  {
 
+        JTextField pseudoField;
+        JComboBox<Client> existingPseudos;
+
         try {
 
-            do {
-                //QrCode qrCode = new QrCode();
-                //pseudo = qrCode.getPseudo();
-                pseudo = JOptionPane.showInputDialog("Saisissez votre pseudo");
-            } while ((pseudo == null) || (pseudo.isEmpty()));
+            JFrame frame = new JFrame("Saisie de Pseudo");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(300, 200);
+            frame.setLocationRelativeTo(null);
+            frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+
+            JPanel inputPanel = new JPanel();
+            inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
+
+            JLabel pseudoLabel = new JLabel("Pseudo:");
+            pseudoField = new JTextField();
+            inputPanel.add(pseudoLabel);
+            inputPanel.add(pseudoField);
+
+            JLabel existingPseudoLabel = new JLabel("Pseudos existants:");
+            existingPseudos = new JComboBox<>();
+
+            for(Client client : ClientHandler.loadClientsList()){
+                existingPseudos.addItem(client);
+            }
+
+            inputPanel.add(existingPseudoLabel);
+            inputPanel.add(existingPseudos);
+
+            JButton validateButton = new JButton("Valider");
+            JButton closeButton = new JButton("Fermer");
+
+            validateButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    if (!pseudoField.getText().isEmpty()) {
+                        pseudo = pseudoField.getText();
+                        frame.dispose();
+                    }
+                }
+            });
+
+            closeButton.addActionListener(e -> frame.dispose());
+
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.add(validateButton);
+            buttonPanel.add(closeButton);
+
+            frame.add(inputPanel);
+            frame.add(buttonPanel);
+
+            // Mettre à jour le champ de texte lorsque la sélection de la liste change
+            existingPseudos.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    Client client = (Client) existingPseudos.getSelectedItem();
+                    if(client != null)pseudoField.setText(client.getPseudo());
+                }
+            });
+
+            frame.setVisible(true);
+
+            while (pseudo.isEmpty()) {
+                try {
+                    Thread.sleep(100); // Ajoute un court délai pour ne pas surcharger le processeur
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
 
             this.socket = socket;
             writerObject = new ObjectOutputStream(socket.getOutputStream());
-
 
             SwingUtilities.invokeLater(() -> {
                 gui = new GUI();  // Instanciation de GUI et stockage de la référence
             });
 
             // On charge les valeurs du client, si elles avaient sauvegardées
-            Client client = findInList(ClientHandler.loadClientsList(), this);
+            Client client = ClientHandler.findInList(ClientHandler.loadClientsList(), this);
             reaffectAllStatus(client);
 
             sendClient(); // premier envoi pour s'initialiser
@@ -166,20 +228,9 @@ public class Client implements Serializable {
         this.balance = balance;
     }
 
-    public Client findInList(List<Client> clientList, Client clientToFind){
-        for(Client client : clientList){
-            if(client.getPseudo().equals(clientToFind.getPseudo()))return client;
-        }
-        return clientToFind;
-    }
-
     @Override
     public String toString() {
-        return "Client{" +
-                "id=" + id +
-                ", pseudo='" + pseudo + '\'' +
-                ", balance=" + balance +
-                '}';
+        return pseudo + " | " + balance + "€";
     }
 
     private static void refreshTable() {
