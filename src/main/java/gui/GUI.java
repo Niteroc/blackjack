@@ -28,18 +28,19 @@ public class GUI {
     private JPanel cardGroup;
     private JButton resetBet;
 
-    private int w = 1280;
-    private int h = 800;
+    private int w = 1920;
+    private int h = 1080;
     public GUI() {
         frame = new JFrame("Blackjack Swing");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(w, h);
 
         mainPane = new JPanel();
-        mainPane.setBackground(new Color(81, 80, 77));
+        mainPane.setBackground(new Color(53, 101, 77));
         mainPane.setLayout(new BorderLayout());
 
         JPanel topPane = new JPanel();
+        topPane.setBackground(new Color(53, 101, 77));
         topPane.setSize(w - w/3,h/2);
         topPane.setLayout(new FlowLayout(FlowLayout.LEFT));
 
@@ -121,10 +122,11 @@ public class GUI {
         playerCardsPane = new JPanel();
         centerPane.add(playerCardsPane);
 
-
+        centerPane.setBackground(new Color(53, 101, 77));
         mainPane.add(centerPane, BorderLayout.CENTER);
 
         frame.add(mainPane);
+        frame.setResizable(false);
         frame.setVisible(true);
     }
 
