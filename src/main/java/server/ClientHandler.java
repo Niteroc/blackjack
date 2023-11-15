@@ -32,7 +32,7 @@ public class ClientHandler implements Runnable {
 
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
-    public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException, InterruptedException {
+    public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException {
         this.clientSocket = clientSocket;
         this.tableHandler = tableHandler;
 
@@ -42,6 +42,9 @@ public class ClientHandler implements Runnable {
             client = (Client) readerObject.readObject();
         } catch (ClassNotFoundException exc) {
         }
+
+        Server.clientLogin(client);
+        Server.logPlayerCount();
 
         logger.info(client + " a rejoint la table " + TableHandler.getId());
 
@@ -84,6 +87,8 @@ public class ClientHandler implements Runnable {
         List<Client> clients = loadClientsList();
         clients.remove(findInList(clients, client));
         clients.add(client);
+        Server.clientLogout(client);
+        Server.logPlayerCount();
 
         try (ObjectOutputStream writer = new ObjectOutputStream(Files.newOutputStream(Paths.get("clients.ser")))) {
             writer.writeObject(clients);

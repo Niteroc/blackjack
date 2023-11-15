@@ -38,7 +38,7 @@ public class TableHandler implements Runnable {
     }
 
     public void updateClient(Client c){
-        c.setBalance(c.getBalance()+10);
+        //c.setBalance(c.getBalance()+10);
         tbsr.updateClient(c);
         clientList = tbsr.getClientList();
     }

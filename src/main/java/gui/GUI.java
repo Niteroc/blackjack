@@ -133,7 +133,7 @@ public class GUI {
             jLabels[i].setText("");
         }
         for(int i = 0 ; i < tbsr.getClientList().size() ; i++){
-            jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + "</html>");
+            jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + " | " + tbsr.getClientList().get(i).getBalance() + "€" + "</html>");
             //jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + "<br/>" + tbsr.getClientList().get(i).getBalance() + "€</html>");
         }
     }

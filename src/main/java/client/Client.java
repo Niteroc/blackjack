@@ -3,6 +3,7 @@ package client;
 import gui.GUI;
 import qrcode.QrCode;
 import server.ClientHandler;
+import server.Server;
 import table.TableSR;
 
 import javax.swing.*;
@@ -29,6 +30,8 @@ public class Client implements Serializable {
 
     private final String id = UUID.randomUUID().toString();
     private static final Logger logger = Logger.getLogger(Client.class.getName());
+
+    private static List<Client> connectedClientList;
 
     public String getPseudo() {
         return pseudo;
@@ -81,7 +84,10 @@ public class Client implements Serializable {
 
             validateButton.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    if (!pseudoField.getText().isEmpty()) {
+                    if(isAlreadyConnected(pseudoField.getText())){
+                        JOptionPane.showMessageDialog(null, "Pseudo déjà connecté", "Erreur", JOptionPane.ERROR_MESSAGE);
+                    }
+                    if (!pseudoField.getText().isEmpty() && !isAlreadyConnected(pseudoField.getText())) {
                         pseudo = pseudoField.getText();
                         frame.dispose();
                     }
@@ -107,14 +113,13 @@ public class Client implements Serializable {
 
             frame.setVisible(true);
 
-            while (pseudo.isEmpty()) {
+            while (pseudo.isEmpty()) { // on attend que le pseudo soit déifni pour poursuivre
                 try {
                     Thread.sleep(100); // Ajoute un court délai pour ne pas surcharger le processeur
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-
 
             this.socket = socket;
             writerObject = new ObjectOutputStream(socket.getOutputStream());
@@ -163,17 +168,14 @@ public class Client implements Serializable {
         } catch (Exception e) {
             System.out.println("exception: " + e);
             System.out.println("closing...");
-            try {
-                socket.close();
-            } catch (java.net.ConnectException e2) {
-                System.out.println("no server running");
-                System.exit(5);
-            } catch (IOException e3) {
-                System.out.println("no open socket");
-                System.exit(6);
-            }
         }
+    }
 
+    private boolean isAlreadyConnected(String pseudo){
+        for(Client client : connectedClientList){
+            if(client.getPseudo().equals(pseudo))return true;
+        }
+        return false;
     }
 
     private void reaffectAllStatus(Client clientModified) {
@@ -203,7 +205,16 @@ public class Client implements Serializable {
             socket = new Socket(addr, port);
             System.out.println("Socket = " + socket);
 
+            try{
+                // Lecture de la liste des clients déjà connectés
+                ObjectInputStream readerObjectList = new ObjectInputStream(socket.getInputStream());
+                connectedClientList = (List<Client>) readerObjectList.readObject();
+            }catch(Exception e){
+                // ne rien faire -- skip la lecture
+            }
+
             new Client(socket);
+
         } catch (Exception nos) {
             System.out.println("Le serveur n'est pas joignable");
             System.exit(5);
