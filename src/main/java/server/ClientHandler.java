@@ -4,6 +4,7 @@ import client.Client;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public class ClientHandler implements Runnable {
 
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
-    public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException {
+    public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException, URISyntaxException {
         this.clientSocket = clientSocket;
         this.tableHandler = tableHandler;
 

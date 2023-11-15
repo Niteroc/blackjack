@@ -5,9 +5,8 @@ import server.ClientHandler;
 import server.TableHandler;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.net.URISyntaxException;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class TableSR implements Serializable {
@@ -16,8 +15,23 @@ public class TableSR implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private HashMap<Client, HandSR> handSRClientHashMap = new HashMap<Client, HandSR>(); // relation entre un Client et sa Main
+
     public List<Client> getClientList() {
         return clientList;
+    }
+
+    public HandSR retrievePlayerHand(Client client){
+        return handSRClientHashMap.get(client);
+    }
+
+    public Client findClientByHand(HandSR handSR){
+        for (Map.Entry<Client, HandSR> entry : handSRClientHashMap.entrySet()) {
+            if (entry.getValue().equals(handSR)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     public Client getClientModification(Client client){
@@ -40,17 +54,18 @@ public class TableSR implements Serializable {
         StringBuilder stringBuilder = new StringBuilder("TableSR{\n");
 
         for (Client client : clientList) {
-            stringBuilder.append("\t").append(client).append('\n');
+            stringBuilder.append("\t").append(client).append(retrievePlayerHand(client)).append('\n');
         }
 
         stringBuilder.append("}");
 
         return stringBuilder.toString();
     }
-    public void updateClient(Client c){
+    public void updateClient(Client c) throws URISyntaxException {
         logger.info(c.getPseudo() + " inséré/maj dans la table " + TableHandler.getId() + " // déjà existant : " + clientList.contains(c));
         if(!clientList.contains(c)){
             clientList.add(c);
+            handSRClientHashMap.put(c, new HandSR());
         }else{
             clientList.set(clientList.indexOf(c),c);
         }

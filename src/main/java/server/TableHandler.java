@@ -4,6 +4,7 @@ import client.Client;
 import table.TableSR;
 
 import java.io.*;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +38,7 @@ public class TableHandler implements Runnable {
         clientList.remove(ch.getClient());
     }
 
-    public void updateClient(Client c){
+    public void updateClient(Client c) throws URISyntaxException {
         //c.setBalance(c.getBalance()+10);
         tbsr.updateClient(c);
         clientList = tbsr.getClientList();
