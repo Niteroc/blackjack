@@ -54,14 +54,14 @@ public class TableSR implements Serializable {
         StringBuilder stringBuilder = new StringBuilder("TableSR{\n");
 
         for (Client client : clientList) {
-            stringBuilder.append("\t").append(client).append(retrievePlayerHand(client)).append('\n');
+            stringBuilder.append("\t").append(client).append('\n');
         }
 
         stringBuilder.append("}");
 
         return stringBuilder.toString();
     }
-    public void updateClient(Client c) throws URISyntaxException {
+    public void updateClient(Client c) {
         logger.info(c.getPseudo() + " inséré/maj dans la table " + TableHandler.getId() + " // déjà existant : " + clientList.contains(c));
         if(!clientList.contains(c)){
             clientList.add(c);

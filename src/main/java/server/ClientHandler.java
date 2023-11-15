@@ -5,10 +5,6 @@ import client.Client;
 import java.io.*;
 import java.net.Socket;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,9 +29,12 @@ public class ClientHandler implements Runnable {
 
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
-    public ClientHandler(Socket clientSocket, TableHandler tableHandler) throws IOException, URISyntaxException {
+    private Server server;
+
+    public ClientHandler(Socket clientSocket, TableHandler tableHandler, Server server) throws IOException, URISyntaxException {
         this.clientSocket = clientSocket;
         this.tableHandler = tableHandler;
+        this.server = server;
 
         readerObject = new ObjectInputStream(clientSocket.getInputStream());
 
@@ -70,53 +69,11 @@ public class ClientHandler implements Runnable {
                 clientSocket.close();
                 tableHandler.removeClientHandler(this);
                 logger.info("Client " + client.getPseudo() + " déconnecté.");
-                saveClient(client);
+                server.saveClient(client);
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Erreur lors de la déconnexion du client ", e);
             }
         }
-    }
-
-    public static Client findInList(List<Client> clientList, Client clientToFind){
-        for(Client client : clientList){
-            if(client.getPseudo().equals(clientToFind.getPseudo()))return client;
-        }
-        return clientToFind;
-    }
-
-    public void saveClient(Client client) {
-        List<Client> clients = loadClientsList();
-        clients.remove(findInList(clients, client));
-        clients.add(client);
-        Server.clientLogout(client);
-        Server.logPlayerCount();
-
-        try (ObjectOutputStream writer = new ObjectOutputStream(Files.newOutputStream(Paths.get("clients.ser")))) {
-            writer.writeObject(clients);
-            writer.flush();
-            logger.info("Client " + client.getPseudo() + " enregistré dans le fichier sérialisé.");
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Erreur lors de l'enregistrement du client dans le fichier sérialisé.", e);
-        }
-    }
-
-    @SuppressWarnings("unchecked") // pour le cast de object en List<Client>
-    public static List<Client> loadClientsList() {
-        try (ObjectInputStream reader = new ObjectInputStream(new FileInputStream("clients.ser"))) {
-            Object object = reader.readObject();
-            if (object instanceof List) {
-                List<Client> loadedClients = (List<Client>) object;
-                logger.info("Liste de clients chargée depuis le fichier.");
-                return loadedClients;
-            } else {
-                logger.warning("Le fichier ne contient pas une liste de clients valide.");
-            }
-        } catch (FileNotFoundException e) {
-            logger.log(Level.WARNING, "Fichier pour les clients introuvable.", e);
-        } catch (IOException | ClassNotFoundException e) {
-            logger.log(Level.SEVERE, "Erreur lors du chargement de la liste des clients depuis le fichier.", e);
-        }
-        return new ArrayList<>();
     }
 
     @Override
