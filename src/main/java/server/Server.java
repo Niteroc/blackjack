@@ -2,10 +2,12 @@ package server;
 
 import client.Client;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,16 +32,39 @@ public class Server {
         listClientConnected.remove(client);
     }
 
+    @SuppressWarnings("unchecked") // pour le cast de object en List<Client>
+    public static List<Client> loadClientsList() {
+        try (ObjectInputStream reader = new ObjectInputStream(new FileInputStream("clients.ser"))) {
+            Object object = reader.readObject();
+            if (object instanceof List) {
+                List<Client> loadedClients = (List<Client>) object;
+                logger.info("Liste de clients chargée depuis le fichier.");
+                return loadedClients;
+            } else {
+                logger.warning("Le fichier ne contient pas une liste de clients valide.");
+            }
+        } catch (FileNotFoundException e) {
+            logger.log(Level.WARNING, "Fichier pour les clients introuvable.", e);
+        } catch (IOException | ClassNotFoundException e) {
+            logger.log(Level.SEVERE, "Erreur lors du chargement de la liste des clients depuis le fichier.", e);
+        }
+        return new ArrayList<>();
+    }
+
     public static void main(String[] args) {
+        new Server();
+    }
+
+    public Server() {
         ServerSocket serverSocket = null;
-        tpe = new ThreadPoolExecutor(MAX_CLIENTS*5, MAX_CLIENTS*5, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+
+        tpe = new ThreadPoolExecutor(MAX_CLIENTS * 5, MAX_CLIENTS * 5, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
 
         try {
             serverSocket = new ServerSocket(PORT);
             logger.info("Serveur en attente de connexions sur le port " + PORT);
             TableHandler tableHandler = new TableHandler();
             logger.info("La table " + TableHandler.getId() + " a été créée");
-
             tpe.execute(tableHandler);
 
             while (true) {
@@ -48,11 +73,15 @@ public class Server {
                 ObjectOutputStream writerObject = new ObjectOutputStream(clientSocket.getOutputStream());
                 writerObject.writeObject(listClientConnected);
 
+                writerObject = new ObjectOutputStream(clientSocket.getOutputStream());
+                writerObject.writeObject(loadClientsList());
+
                 if (true) {
-                    try{
-                        ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler);
+                    try {
+                        ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler, this);
                         tpe.execute(clientHandler);
-                    }catch (Exception e){
+                        saveClient(clientHandler.getClient());
+                    } catch (Exception e) {
                         logger.info("Fermeture de la connexion");
                     }
                 } else {
@@ -76,5 +105,28 @@ public class Server {
 
     public static void logPlayerCount(){
         logger.info("Clients connectés au serveur : " + listClientConnected.toString());
+    }
+
+    public void saveClient(Client client) {
+        List<Client> clients = loadClientsList();
+        clients.remove(findInList(clients, client));
+        clients.add(client);
+        Server.clientLogout(client);
+        Server.logPlayerCount();
+
+        try (ObjectOutputStream writer = new ObjectOutputStream(Files.newOutputStream(Paths.get("clients.ser")))) {
+            writer.writeObject(clients);
+            writer.flush();
+            logger.info("Client " + client.getPseudo() + " enregistré dans le fichier sérialisé.");
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Erreur lors de l'enregistrement du client dans le fichier sérialisé.", e);
+        }
+    }
+
+    public static Client findInList(List<Client> clientList, Client clientToFind){
+        for(Client client : clientList){
+            if(client.getPseudo().equals(clientToFind.getPseudo()))return client;
+        }
+        return clientToFind;
     }
 }

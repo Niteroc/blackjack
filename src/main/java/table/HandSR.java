@@ -21,7 +21,7 @@ public class HandSR implements Serializable {
         this.cardSRList = cardSRList;
     }
 
-    public HandSR() throws URISyntaxException {
+    public HandSR() {
         cardSRList.add(new CardSR(1,1));
         cardSRList.add(new CardSR(10,1));
     }

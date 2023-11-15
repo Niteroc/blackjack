@@ -4,6 +4,7 @@ import gui.GUI;
 import qrcode.QrCode;
 import server.ClientHandler;
 import server.Server;
+import table.HandSR;
 import table.TableSR;
 
 import javax.swing.*;
@@ -33,6 +34,8 @@ public class Client implements Serializable {
 
     private static List<Client> connectedClientList;
 
+    private static List<Client> savedClientList;
+
     public String getPseudo() {
         return pseudo;
     }
@@ -47,6 +50,8 @@ public class Client implements Serializable {
     private transient GUI gui;
 
     private static int port = 12345;
+
+    private HandSR currentHand;
 
     public Client(Socket socket)  {
 
@@ -72,7 +77,7 @@ public class Client implements Serializable {
             JLabel existingPseudoLabel = new JLabel("Pseudos existants:");
             existingPseudos = new JComboBox<>();
 
-            for(Client client : ClientHandler.loadClientsList()){
+            for(Client client : savedClientList){
                 existingPseudos.addItem(client);
             }
 
@@ -129,7 +134,7 @@ public class Client implements Serializable {
             });
 
             // On charge les valeurs du client, si elles avaient sauvegardées
-            Client client = ClientHandler.findInList(ClientHandler.loadClientsList(), this);
+            Client client = Server.findInList(savedClientList, this);
             reaffectAllStatus(client);
 
             sendClient(); // premier envoi pour s'initialiser
@@ -183,6 +188,11 @@ public class Client implements Serializable {
         logger.info("après " + clientModified);
         pseudo = clientModified.getPseudo();
         balance = clientModified.getBalance();
+        currentHand = clientModified.getCurrentHand();
+    }
+
+    private HandSR getCurrentHand() {
+        return currentHand;
     }
 
     public static void main(String[] args) {
@@ -209,6 +219,10 @@ public class Client implements Serializable {
                 // Lecture de la liste des clients déjà connectés
                 ObjectInputStream readerObjectList = new ObjectInputStream(socket.getInputStream());
                 connectedClientList = (List<Client>) readerObjectList.readObject();
+
+                // Lecture de la liste des clients sauvegardés au préalable
+                readerObjectList = new ObjectInputStream(socket.getInputStream());
+                savedClientList = (List<Client>) readerObjectList.readObject();
             }catch(Exception e){
                 // ne rien faire -- skip la lecture
             }
@@ -241,7 +255,7 @@ public class Client implements Serializable {
 
     @Override
     public String toString() {
-        return pseudo + " | " + balance + "€";
+        return pseudo + " | " + balance + "€ | " + currentHand;
     }
 
     private static void refreshTable() {
