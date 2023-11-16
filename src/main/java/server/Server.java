@@ -107,9 +107,12 @@ public class Server {
         logger.info("Clients connectés au serveur : " + listClientConnected.toString());
     }
 
-    public void saveClient(Client client) {
+    public void saveClient(Client client) throws IOException {
         List<Client> clients = loadClientsList();
         clients.remove(findInList(clients, client));
+        client.setCurrentHand(null);
+        client.setCurrentBet(0);
+        client.setHasBet(false);
         clients.add(client);
         Server.clientLogout(client);
         Server.logPlayerCount();

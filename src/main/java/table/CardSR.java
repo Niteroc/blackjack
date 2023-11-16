@@ -1,10 +1,11 @@
 package table;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
-import java.net.URISyntaxException;
 import java.util.Objects;
 
 public class CardSR implements Serializable {
@@ -23,21 +24,13 @@ public class CardSR implements Serializable {
         this.cardName = "" + color + value;
 
         try {
-            InputStream inputStream = getClass().getResourceAsStream("/fr/student/blackjack/cards/all/" + color + value + ".png");
-
-            if (inputStream != null) {
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                int nRead;
-                byte[] data = new byte[1024];
-
-                while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-                    buffer.write(data, 0, nRead);
-                }
-
-                buffer.flush();
-                imageData = buffer.toByteArray();
-                inputStream.close();
-            }
+            File file = new File("src/main/resources/fr/student/blackjack/cards/all/image.png");
+            BufferedImage image = ImageIO.read(file);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            baos.flush();
+            imageData = baos.toByteArray();
+            baos.close();
         } catch (IOException e) {
             System.out.println("Impossible de charger l'image \n" + e);
         }

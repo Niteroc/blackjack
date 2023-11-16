@@ -1,8 +1,6 @@
 package client;
 
 import gui.GUI;
-import qrcode.QrCode;
-import server.ClientHandler;
 import server.Server;
 import table.HandSR;
 import table.TableSR;
@@ -13,7 +11,6 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -43,7 +40,7 @@ public class Client implements Serializable {
     private String pseudo = "";
 
     private int balance = 0;
-    private int bet = 0;
+    private int currentBet = 0;
     private transient ObjectOutputStream writerObject;
     private transient ObjectInputStream readerObject;
     private transient Socket socket; // Ajoutez une variable membre pour le socket
@@ -55,15 +52,6 @@ public class Client implements Serializable {
     private HandSR currentHand;
 
     private boolean hasBet = false;
-
-    public boolean hasBet() {
-        return hasBet;
-    }
-
-    public void setHasBet(boolean hasBet) throws IOException {
-        this.hasBet = hasBet;
-        sendClient();
-    }
 
     public Client(Socket socket)  {
 
@@ -206,6 +194,7 @@ public class Client implements Serializable {
         pseudo = clientModified.getPseudo();
         balance = clientModified.getBalance();
         currentHand = clientModified.getCurrentHand();
+        hasBet = clientModified.hasBet();
     }
 
     public static void main(String[] args) {
@@ -267,11 +256,13 @@ public class Client implements Serializable {
         sendClient();
     }
 
-    public void setBet(int bet) throws IOException {
-        this.bet = balance;
+    public void setCurrentBet(int currentBet) throws IOException {
+        this.currentBet = currentBet;
     }
 
-    public int getBet() { return bet; }
+
+
+    public int getCurrentBet() { return currentBet; }
 
     public void setCurrentHand(HandSR currentHand) {
         this.currentHand = currentHand;
@@ -281,9 +272,31 @@ public class Client implements Serializable {
         return currentHand;
     }
 
+    public boolean hasBet() {
+        return hasBet;
+    }
+
+    public void setHasBet(boolean hasBet, int currentBet) throws IOException {
+        this.setCurrentBet(currentBet);
+        this.hasBet = hasBet;
+        sendClient();
+    }
+
+    public void setHasBet(boolean hasBet) throws IOException {
+        this.hasBet = hasBet;
+        sendClient();
+    }
+
     @Override
     public String toString() {
-        return pseudo + " | " + balance + "€ | " + currentHand;
+        return "Client{" +
+                "id='" + id + '\'' +
+                ", pseudo='" + pseudo + '\'' +
+                ", balance=" + balance +
+                ", currentBet=" + currentBet +
+                ", currentHand=" + currentHand +
+                ", hasBet=" + hasBet +
+                '}';
     }
 
     private static void refreshTable() {
@@ -299,8 +312,7 @@ public class Client implements Serializable {
     }
 
     public boolean hasSameProperty(Client c) {
-        if(balance == c.balance && bet == c.bet && hasBet == c.hasBet && currentHand == c.currentHand)return true;
-        return false;
+        return (balance == c.balance && hasBet == c.hasBet && currentHand.equals(c.currentHand));
     }
 
     @Override

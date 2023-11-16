@@ -8,8 +8,10 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 public class GUI {
+    private static final Logger logger = Logger.getLogger(Client.class.getName());
     private JFrame frame;
     private JPanel mainPane;
     private JTextArea balanceField;
@@ -168,7 +170,7 @@ public class GUI {
             jLabels[i].setText("");
         }
         for(int i = 0 ; i < tbsr.getClientList().size() ; i++){
-            jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + " | " + tbsr.getClientList().get(i).getBalance() + "€" + "</html>");
+            jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + " | " + tbsr.getClientList().get(i).getCurrentBet() + "€" + "</html>");
             //jLabels[i].setText("<html>" + tbsr.getClientList().get(i).getPseudo() + "<br/>" + tbsr.getClientList().get(i).getBalance() + "€</html>");
         }
     }
@@ -224,8 +226,8 @@ public class GUI {
     public class Bet implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             try {
-                currentClient.setBet(bet);
-                currentClient.setHasBet(true);
+                currentClient.setHasBet(true,bet);
+                dealButton.setEnabled(false);
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }

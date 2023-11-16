@@ -30,6 +30,8 @@ public class TableHandler implements Runnable {
 
     private List<CardSR> cardSRList = new ArrayList<>();
 
+    private boolean gameInProgress = false;
+
     public TableHandler() throws IOException {
     }
 
@@ -53,7 +55,12 @@ public class TableHandler implements Runnable {
         if((clientList.size() != clientListSave.size()))return true;
 
         for(int i = 0 ; i < clientListSave.size() ; i++){
-            if(!clientList.get(i).hasSameProperty(clientListSave.get(i)))return true;
+            if(!clientList.get(i).hasSameProperty(clientListSave.get(i))){
+                logger.info(clientList.get(i).getBalance() + "" + clientListSave.get(i).getBalance());
+                logger.info(clientList.get(i).hasBet() + "" + clientListSave.get(i).hasBet());
+                logger.info(clientList.get(i).getCurrentHand() + "" + clientListSave.get(i).getCurrentHand());
+                return true;
+            }
         }
 
         return false;
@@ -73,6 +80,7 @@ public class TableHandler implements Runnable {
         int indexRandom = (int)(Math.random()*(cardSRList.size()));
         CardSR card = cardSRList.get(indexRandom);
         cardSRList.remove(indexRandom);
+        logger.info("Carte tirée : " + card);
         return card;
     }
 
@@ -97,8 +105,10 @@ public class TableHandler implements Runnable {
                     if(client.hasBet() && client.getCurrentHand() == null)cpt++;
                 }
 
-                if(cpt == clientList.size() && cpt != 0){ // si égal au nombre de joueurs alors tout le monde a parié
-                    System.out.println("Les jeux sont faits");
+                if(!gameInProgress && cpt == clientList.size() && cpt != 0){ // si égal au nombre de joueurs alors tout le monde a parié
+                    gameInProgress = true;
+                    logger.info("Les jeux sont faits");
+                    setCardGame();
                     for(Client client : clientList){
                         drawCards(client , 2);
                     }
@@ -110,7 +120,7 @@ public class TableHandler implements Runnable {
 
                 // Envoi de la table si elle a été modifiée (check des listes)
                 if (areListNotEquals()) {
-                    logger.info("Modification détectée. Ancienne liste : " + clientListSave);
+                    logger.info("Modification détectée\n. Ancienne liste : " + clientListSave);
                     logger.info("Nouvelle liste : " + clientList);
 
                     clientListSave.clear();
