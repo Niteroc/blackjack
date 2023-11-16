@@ -54,6 +54,17 @@ public class Client implements Serializable {
 
     private HandSR currentHand;
 
+    private boolean hasBet = false;
+
+    public boolean hasBet() {
+        return hasBet;
+    }
+
+    public void setHasBet(boolean hasBet) throws IOException {
+        this.hasBet = hasBet;
+        sendClient();
+    }
+
     public Client(Socket socket)  {
 
         JTextField pseudoField;
@@ -100,7 +111,12 @@ public class Client implements Serializable {
                 }
             });
 
-            closeButton.addActionListener(e -> frame.dispose());
+            closeButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    frame.dispose();
+                    System.exit(0);
+                }
+            });
 
             JPanel buttonPanel = new JPanel();
             buttonPanel.add(validateButton);
@@ -190,10 +206,6 @@ public class Client implements Serializable {
         pseudo = clientModified.getPseudo();
         balance = clientModified.getBalance();
         currentHand = clientModified.getCurrentHand();
-    }
-
-    private HandSR getCurrentHand() {
-        return currentHand;
     }
 
     public static void main(String[] args) {
@@ -287,7 +299,8 @@ public class Client implements Serializable {
     }
 
     public boolean hasSameProperty(Client c) {
-        return balance == c.balance;
+        if(balance == c.balance && bet == c.bet && hasBet == c.hasBet && currentHand == c.currentHand)return true;
+        return false;
     }
 
     @Override
