@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
 public class CardSR implements Serializable {
 
@@ -51,5 +52,18 @@ public class CardSR implements Serializable {
         return "CardSR{" +
                 "carte=" + cardName +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CardSR cardSR = (CardSR) o;
+        return Objects.equals(cardName, cardSR.cardName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(cardName);
     }
 }

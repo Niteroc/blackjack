@@ -17,13 +17,14 @@ public class HandSR implements Serializable {
         return cardSRList;
     }
 
-    public void setCardSRList(List<CardSR> cardSRList) {
-        this.cardSRList = cardSRList;
+    public HandSR() {}
+
+    public void addCardToList(CardSR card){
+        cardSRList.add(card);
     }
 
-    public HandSR() {
-        cardSRList.add(new CardSR(1,1));
-        cardSRList.add(new CardSR(10,1));
+    public void clearCardList(){
+        cardSRList.clear();
     }
 
     @Override
@@ -38,7 +39,7 @@ public class HandSR implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         HandSR handSR = (HandSR) o;
-        return Objects.equals(id, handSR.id);
+        return Objects.equals(id, handSR.id) && Objects.equals(cardSRList, handSR.cardSRList);
     }
 
     @Override

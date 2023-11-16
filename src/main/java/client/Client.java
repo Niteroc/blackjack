@@ -43,6 +43,7 @@ public class Client implements Serializable {
     private String pseudo = "";
 
     private int balance = 0;
+    private int bet = 0;
     private transient ObjectOutputStream writerObject;
     private transient ObjectInputStream readerObject;
     private transient Socket socket; // Ajoutez une variable membre pour le socket
@@ -130,7 +131,7 @@ public class Client implements Serializable {
             writerObject = new ObjectOutputStream(socket.getOutputStream());
 
             SwingUtilities.invokeLater(() -> {
-                gui = new GUI();  // Instanciation de GUI et stockage de la référence
+                gui = new GUI(this);  // Instanciation de GUI et stockage de la référence
             });
 
             // On charge les valeurs du client, si elles avaient sauvegardées
@@ -249,8 +250,23 @@ public class Client implements Serializable {
         return balance;
     }
 
-    public void setBalance(int balance) {
+    public void setBalance(int balance) throws IOException {
         this.balance = balance;
+        sendClient();
+    }
+
+    public void setBet(int bet) throws IOException {
+        this.bet = balance;
+    }
+
+    public int getBet() { return bet; }
+
+    public void setCurrentHand(HandSR currentHand) {
+        this.currentHand = currentHand;
+    }
+
+    public HandSR getCurrentHand() {
+        return currentHand;
     }
 
     @Override
