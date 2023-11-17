@@ -178,55 +178,55 @@ public class GUI {
     public class Bet1 implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             bet += 1;
-            betField.setText("Mise : $"+(Integer.toString(bet)));
+            betField.setText("Mise : $"+(bet));
         }
     }
 
     public class Bet5 implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             bet += 5;
-            betField.setText("Mise : $"+(Integer.toString(bet)));
+            betField.setText("Mise : $"+(bet));
         }
     }
 
     public class Bet25 implements ActionListener {
         public void actionPerformed(ActionEvent e) {
-            betField.setText("Mise : $"+(Integer.toString(bet)));
+            betField.setText("Mise : $"+(bet));
         }
     }
 
     public class Bet50 implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             bet += 50;
-            betField.setText("Mise : $"+(Integer.toString(bet)));
+            betField.setText("Mise : $"+(bet));
         }
     }
 
     public class Bet100 implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             bet += 100;
-            betField.setText("Mise : $"+(Integer.toString(bet)));
+            betField.setText("Mise : $"+(bet));
         }
     }
 
     public class Bet500 implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             bet += 500;
-            betField.setText("Mise : $"+(Integer.toString(bet)));
+            betField.setText("Mise : $"+(bet));
         }
     }
 
     public class Reset implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             bet = 0;
-            betField.setText("Mise : $"+(Integer.toString(bet)));
+            betField.setText("Mise : $"+(bet));
         }
     }
 
     public class Bet implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             try {
-                currentClient.setHasBet(true,bet);
+                currentClient.setHasBet(true,bet,true);
                 dealButton.setEnabled(false);
             } catch (IOException ex) {
                 throw new RuntimeException(ex);

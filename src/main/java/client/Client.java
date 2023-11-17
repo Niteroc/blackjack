@@ -1,6 +1,6 @@
 package client;
 
-import gui.GUI;
+import gui.Controller;
 import server.Server;
 import table.HandSR;
 import table.TableSR;
@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Client implements Serializable {
+public class Client implements Serializable, Runnable {
     public String getId() {
         return id;
     }
@@ -42,86 +42,16 @@ public class Client implements Serializable {
     private int balance = 0;
     private int currentBet = 0;
     private transient ObjectOutputStream writerObject;
-    private transient ObjectInputStream readerObject;
     private transient Socket socket; // Ajoutez une variable membre pour le socket
 
-    private transient GUI gui;
-
-    private static int port = 12345;
+    private transient Controller controller;
 
     private HandSR currentHand;
 
     private boolean hasBet = false;
 
-    public Client(Socket socket)  {
-
-        JTextField pseudoField;
-        JComboBox<Client> existingPseudos;
-
+    public void run() {
         try {
-
-            JFrame frame = new JFrame("Saisie de Pseudo");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(300, 200);
-            frame.setLocationRelativeTo(null);
-            frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
-
-            JPanel inputPanel = new JPanel();
-            inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
-
-            JLabel pseudoLabel = new JLabel("Pseudo:");
-            pseudoField = new JTextField();
-            inputPanel.add(pseudoLabel);
-            inputPanel.add(pseudoField);
-
-            JLabel existingPseudoLabel = new JLabel("Pseudos existants:");
-            existingPseudos = new JComboBox<>();
-
-            for(Client client : savedClientList){
-                existingPseudos.addItem(client);
-            }
-
-            inputPanel.add(existingPseudoLabel);
-            inputPanel.add(existingPseudos);
-
-            JButton validateButton = new JButton("Valider");
-            JButton closeButton = new JButton("Fermer");
-
-            validateButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    if(isAlreadyConnected(pseudoField.getText())){
-                        JOptionPane.showMessageDialog(null, "Pseudo déjà connecté", "Erreur", JOptionPane.ERROR_MESSAGE);
-                    }
-                    if (!pseudoField.getText().isEmpty() && !isAlreadyConnected(pseudoField.getText())) {
-                        pseudo = pseudoField.getText();
-                        frame.dispose();
-                    }
-                }
-            });
-
-            closeButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    frame.dispose();
-                    System.exit(0);
-                }
-            });
-
-            JPanel buttonPanel = new JPanel();
-            buttonPanel.add(validateButton);
-            buttonPanel.add(closeButton);
-
-            frame.add(inputPanel);
-            frame.add(buttonPanel);
-
-            // Mettre à jour le champ de texte lorsque la sélection de la liste change
-            existingPseudos.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    Client client = (Client) existingPseudos.getSelectedItem();
-                    if(client != null)pseudoField.setText(client.getPseudo());
-                }
-            });
-
-            frame.setVisible(true);
 
             while (pseudo.isEmpty()) { // on attend que le pseudo soit déifni pour poursuivre
                 try {
@@ -131,14 +61,13 @@ public class Client implements Serializable {
                 }
             }
 
-            this.socket = socket;
             writerObject = new ObjectOutputStream(socket.getOutputStream());
 
-            SwingUtilities.invokeLater(() -> {
+            /*SwingUtilities.invokeLater(() -> {
                 gui = new GUI(this);  // Instanciation de GUI et stockage de la référence
-            });
+            });*/
 
-            // On charge les valeurs du client, si elles avaient sauvegardées
+            // On charge les valeurs du client, si elles avaient été sauvegardées
             Client client = Server.findInList(savedClientList, this);
             reaffectAllStatus(client);
 
@@ -161,7 +90,7 @@ public class Client implements Serializable {
 
                         // Mise à jour des composants graphiques
                         refreshTable();
-                        gui.testText(tbsr);
+                        controller.testText(tbsr);
                         logger.info("Rafraichissement de la vue");
 
                         // Envoi du client courant au serveur
@@ -181,25 +110,15 @@ public class Client implements Serializable {
         }
     }
 
-    private boolean isAlreadyConnected(String pseudo){
-        for(Client client : connectedClientList){
-            if(client.getPseudo().equals(pseudo))return true;
-        }
-        return false;
+    public void shutdown(){
+        System.exit(0);
     }
 
-    private void reaffectAllStatus(Client clientModified) {
-        logger.info("avant " + this);
-        logger.info("après " + clientModified);
-        pseudo = clientModified.getPseudo();
-        balance = clientModified.getBalance();
-        currentHand = clientModified.getCurrentHand();
-        hasBet = clientModified.hasBet();
-    }
+    @SuppressWarnings("unchecked")
+    public Client(Controller controller) {
 
-    public static void main(String[] args) {
         try {
-            Socket socket;
+            this.controller = controller;
             String host;
 
             // Expression régulière pour une adresse IP
@@ -213,6 +132,7 @@ public class Client implements Serializable {
             } while (host.isEmpty() || !matcher.matches());
 
             InetAddress addr = InetAddress.getByName(host);
+            int port = 12345;
             System.out.println("Adresse = " + addr + ":" + port);
             socket = new Socket(addr, port);
             System.out.println("Socket = " + socket);
@@ -229,7 +149,74 @@ public class Client implements Serializable {
                 // ne rien faire -- skip la lecture
             }
 
-            new Client(socket);
+            try{
+                JTextField pseudoField;
+                JComboBox<String> existingPseudos;
+
+                JFrame frame = new JFrame("Saisie de Pseudo");
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setSize(300, 200);
+                frame.setLocationRelativeTo(null);
+                frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+
+                JPanel inputPanel = new JPanel();
+                inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
+
+                JLabel pseudoLabel = new JLabel("Pseudo:");
+                pseudoField = new JTextField();
+                inputPanel.add(pseudoLabel);
+                inputPanel.add(pseudoField);
+
+                JLabel existingPseudoLabel = new JLabel("Pseudos existants:");
+                existingPseudos = new JComboBox<>();
+
+                for(Client client : savedClientList){
+                    existingPseudos.addItem(client.getPseudo());
+                }
+
+                inputPanel.add(existingPseudoLabel);
+                inputPanel.add(existingPseudos);
+
+                JButton validateButton = new JButton("Valider");
+                JButton closeButton = new JButton("Fermer");
+
+                validateButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        if(isAlreadyConnected(pseudoField.getText())){
+                            JOptionPane.showMessageDialog(null, "Pseudo déjà connecté", "Erreur", JOptionPane.ERROR_MESSAGE);
+                        }
+                        if (!pseudoField.getText().isEmpty() && !isAlreadyConnected(pseudoField.getText())) {
+                            pseudo = pseudoField.getText();
+                            frame.dispose();
+                        }
+                    }
+                });
+
+                closeButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        frame.dispose();
+                        System.exit(0);
+                    }
+                });
+
+                JPanel buttonPanel = new JPanel();
+                buttonPanel.add(validateButton);
+                buttonPanel.add(closeButton);
+
+                frame.add(inputPanel);
+                frame.add(buttonPanel);
+
+                // Mettre à jour le champ de texte lorsque la sélection de la liste change
+                existingPseudos.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        pseudoField.setText((String) existingPseudos.getSelectedItem());
+                    }
+                });
+
+                frame.setVisible(true);
+            }catch(Exception e){
+                logger.severe("Erreur sélection des pseudos : " + e.getMessage());
+            }
 
         } catch (Exception nos) {
             System.out.println("Le serveur n'est pas joignable");
@@ -237,13 +224,30 @@ public class Client implements Serializable {
         }
     }
 
+    private boolean isAlreadyConnected(String pseudo){
+        for(Client client : connectedClientList){
+            if(client.getPseudo().equals(pseudo))return true;
+        }
+        return false;
+    }
+
+    private void reaffectAllStatus(Client clientModified) {
+        logger.info("avant " + this);
+        logger.info("après " + clientModified);
+        pseudo = clientModified.getPseudo();
+        balance = clientModified.getBalance();
+        currentHand = clientModified.getCurrentHand();
+        hasBet = clientModified.hasBet();
+    }
+
     private void sendClient() throws IOException {
+        logger.info("Envoi du client à la table");
         writerObject.writeObject(this);
         writerObject.reset();
     }
 
     private TableSR readTable() throws IOException, ClassNotFoundException {
-        readerObject = new ObjectInputStream(socket.getInputStream());
+        ObjectInputStream readerObject = new ObjectInputStream(socket.getInputStream());
         return (TableSR) readerObject.readObject();
     }
 
@@ -260,8 +264,6 @@ public class Client implements Serializable {
         this.currentBet = currentBet;
     }
 
-
-
     public int getCurrentBet() { return currentBet; }
 
     public void setCurrentHand(HandSR currentHand) {
@@ -276,15 +278,14 @@ public class Client implements Serializable {
         return hasBet;
     }
 
-    public void setHasBet(boolean hasBet, int currentBet) throws IOException {
+    public void setHasBet(boolean hasBet, int currentBet, boolean toSend) throws IOException {
         this.setCurrentBet(currentBet);
         this.hasBet = hasBet;
-        sendClient();
+        if(toSend)sendClient();
     }
 
     public void setHasBet(boolean hasBet) throws IOException {
         this.hasBet = hasBet;
-        sendClient();
     }
 
     @Override

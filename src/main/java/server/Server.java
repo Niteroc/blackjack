@@ -34,7 +34,13 @@ public class Server {
 
     @SuppressWarnings("unchecked") // pour le cast de object en List<Client>
     public static List<Client> loadClientsList() {
-        try (ObjectInputStream reader = new ObjectInputStream(new FileInputStream("clients.ser"))) {
+        File clientsFile = new File("clients.ser");
+        if (!clientsFile.exists() || clientsFile.length() == 0) {
+            logger.warning("Le fichier pour les clients est vide ou n'existe pas.");
+            return new ArrayList<>();
+        }
+
+        try (ObjectInputStream reader = new ObjectInputStream(new FileInputStream(clientsFile))) {
             Object object = reader.readObject();
             if (object instanceof List) {
                 List<Client> loadedClients = (List<Client>) object;
@@ -70,6 +76,7 @@ public class Server {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 logger.info("Nouvelle connexion acceptée.");
+
                 ObjectOutputStream writerObject = new ObjectOutputStream(clientSocket.getOutputStream());
                 writerObject.writeObject(listClientConnected);
 
@@ -80,7 +87,6 @@ public class Server {
                     try {
                         ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler, this);
                         tpe.execute(clientHandler);
-                        saveClient(clientHandler.getClient());
                     } catch (Exception e) {
                         logger.info("Fermeture de la connexion");
                     }
@@ -108,8 +114,15 @@ public class Server {
     }
 
     public void saveClient(Client client) throws IOException {
+
         List<Client> clients = loadClientsList();
-        clients.remove(findInList(clients, client));
+
+        try{
+            clients.remove(findInList(clients, client));
+        }catch (Exception e){
+            // ne rien faire -- fichier vide
+        }
+
         client.setCurrentHand(null);
         client.setCurrentBet(0);
         client.setHasBet(false);

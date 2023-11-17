@@ -17,7 +17,6 @@ public class ClientHandler implements Runnable {
 
     private final Socket clientSocket;
 
-
     public Client getClient() {
         return client;
     }

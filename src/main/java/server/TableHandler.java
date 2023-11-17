@@ -44,6 +44,75 @@ public class TableHandler implements Runnable {
         clientList.remove(ch.getClient());
     }
 
+    @Override
+    public void run() {
+        while (true) { // en écoute des maj de la table du joueur
+            try {
+
+                /// On instancie deux cartes pour chaque joueur
+                int cpt = 0;
+
+                for(Client client : clientList){
+                    if(client.hasBet() && client.getCurrentHand() == null)cpt++;
+                }
+
+                if(!gameInProgress && cpt == clientList.size() && cpt != 0){ // si égal au nombre de joueurs alors tout le monde a parié
+                    gameInProgress = true;
+                    logger.info("Les jeux sont faits");
+                    setCardGame();
+                    for(Client client : clientList){
+                        drawCards(client , 2);
+                    }
+
+                    /// On instancie les deux premières cartes du dealer
+                    CardSR carte1dealer = getRandomCard();
+                    CardSR carte2dealer = getRandomCard();
+                }
+
+                if(!isGameInProgress() && gameInProgress){
+                    logger.info("Aucun joueur sur la partie actuel, arrêt de la partie.");
+                    gameInProgress = false;
+                }
+
+                // Envoi de la table si elle a été modifiée (check des listes)
+                if (areListNotEquals()) {
+                    logger.info("Modification détectée\n. Ancienne liste : " + clientListSave);
+                    logger.info("Nouvelle liste : " + clientList);
+
+                    clientListSave.clear();
+                    clientListSave.addAll(clientList);
+
+                    writeObject();
+
+                    logger.info("clientListSave mise à jour : " + clientListSave);
+                }
+
+                Thread.sleep(1000);
+
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private boolean isGameInProgress(){
+        int cpt = 0;
+
+        for(Client client : clientList){
+            if(client.hasBet())cpt++; // hasBet est toujours vrai pour un joueur dès lors qu'il a misé et que la partie n'est pas terminée
+        }
+
+        return cpt == clientList.size();
+    }
+
+    private synchronized void writeObject() throws IOException {
+        for (ClientHandler clientHandler : clientHandlerList) {
+            writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
+            writerObject.writeObject(tbsr);
+            writerObject.flush();
+            logger.info("Table " + tbsr + " envoyée à " + clientHandler.getClient().getPseudo());
+        }
+    }
+
     public void updateClient(Client c) {
         //c.setBalance(c.getBalance()+10);
         tbsr.updateClient(c);
@@ -91,60 +160,6 @@ public class TableHandler implements Runnable {
             handSR.addCardToList(getRandomCard());
         }
         client.setCurrentHand(handSR);
-    }
-
-    @Override
-    public void run() {
-        while (true) { // en écoute des maj de la table du joueur
-            try {
-
-                /// On instancie deux cartes pour chaque joueur
-                int cpt = 0;
-
-                for(Client client : clientList){
-                    if(client.hasBet() && client.getCurrentHand() == null)cpt++;
-                }
-
-                if(!gameInProgress && cpt == clientList.size() && cpt != 0){ // si égal au nombre de joueurs alors tout le monde a parié
-                    gameInProgress = true;
-                    logger.info("Les jeux sont faits");
-                    setCardGame();
-                    for(Client client : clientList){
-                        drawCards(client , 2);
-                    }
-
-                    /// On instancie les deux premières cartes du dealer
-                    CardSR carte1dealer = getRandomCard();
-                    CardSR carte2dealer = getRandomCard();
-                }
-
-                // Envoi de la table si elle a été modifiée (check des listes)
-                if (areListNotEquals()) {
-                    logger.info("Modification détectée\n. Ancienne liste : " + clientListSave);
-                    logger.info("Nouvelle liste : " + clientList);
-
-                    clientListSave.clear();
-                    clientListSave.addAll(clientList);
-
-                    writeObject();
-
-                    logger.info("clientListSave mise à jour : " + clientListSave);
-                }
-
-                Thread.sleep(1000);
-
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
-    private synchronized void writeObject() throws IOException {
-        for (ClientHandler clientHandler : clientHandlerList) {
-            writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
-            writerObject.writeObject(tbsr);
-            writerObject.flush();
-            logger.info("Table " + tbsr + " envoyée à " + clientHandler.getClient().getPseudo());
-        }
     }
 
     public static int getId() {

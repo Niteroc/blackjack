@@ -10,7 +10,9 @@ import java.util.Objects;
 
 public class CardSR implements Serializable {
 
-    private byte[] imageData;
+    public String getCardName() {
+        return cardName;
+    }
 
     private String cardName;
 
@@ -21,23 +23,7 @@ public class CardSR implements Serializable {
     public CardSR(int color, int value) {
         this.color = color;
         this.value = value;
-        this.cardName = "" + color + value;
-
-        try {
-            File file = new File("src/main/resources/fr/student/blackjack/cards/all/image.png");
-            BufferedImage image = ImageIO.read(file);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", baos);
-            baos.flush();
-            imageData = baos.toByteArray();
-            baos.close();
-        } catch (IOException e) {
-            System.out.println("Impossible de charger l'image \n" + e);
-        }
-    }
-
-    public byte[] getImageData() {
-        return imageData;
+        this.cardName = "" + value + color;
     }
 
     @Override
