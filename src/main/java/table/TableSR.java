@@ -21,6 +21,28 @@ public class TableSR implements Serializable {
         return clientList;
     }
 
+    public void setGameInProgress(boolean gameInProgress) {
+        isGameInProgress = gameInProgress;
+    }
+
+    public boolean isGameInProgress() {
+        return isGameInProgress;
+    }
+
+    private boolean isGameInProgress = false;
+
+
+
+    public List<CardSR> getCardSRDealerList() {
+        return cardSRDealerList;
+    }
+
+    public void setCardSRDealerList(List<CardSR> cardSRDealerList) {
+        this.cardSRDealerList = cardSRDealerList;
+    }
+
+    private List<CardSR> cardSRDealerList = new ArrayList<>();
+
     public HandSR retrievePlayerHand(Client client){
         return handSRClientHashMap.get(client);
     }
@@ -56,6 +78,8 @@ public class TableSR implements Serializable {
         for (Client client : clientList) {
             stringBuilder.append("\t").append(client).append('\n');
         }
+
+        stringBuilder.append("\t").append(cardSRDealerList).append('\n');
 
         stringBuilder.append("}");
 

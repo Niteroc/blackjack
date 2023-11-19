@@ -126,6 +126,10 @@ public class Server {
         client.setCurrentHand(null);
         client.setCurrentBet(0);
         client.setHasBet(false);
+        client.setMyTurn(false);
+        client.setEndTurn(false);
+        client.setWantACard(false, false);
+        client.setValeur(0);
         clients.add(client);
         Server.clientLogout(client);
         Server.logPlayerCount();

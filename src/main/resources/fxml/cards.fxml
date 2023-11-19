@@ -65,12 +65,12 @@
                   <Font name="System Bold" size="40.0" />
                </font>
             </Button>
-          <Button fx:id="hitButton" disable="true" layoutX="516.0" layoutY="713.0" mnemonicParsing="false" prefHeight="46.0" prefWidth="128.0" text="TIRER">
+          <Button fx:id="hitButton" disable="true" layoutX="516.0" layoutY="713.0" mnemonicParsing="false" onAction="#hitACard" prefHeight="46.0" prefWidth="128.0" text="TIRER">
                <font>
                   <Font name="System Bold" size="25.0" />
                </font>
             </Button>
-            <Button fx:id="standButton" disable="true" layoutX="656.0" layoutY="713.0" mnemonicParsing="false" prefHeight="46.0" prefWidth="128.0" text="RESTER">
+            <Button fx:id="standButton" disable="true" layoutX="656.0" layoutY="713.0" mnemonicParsing="false" onAction="#stand" prefHeight="46.0" prefWidth="128.0" text="RESTER">
                <font>
                   <Font name="System Bold" size="25.0" />
                </font>
@@ -85,7 +85,7 @@
             <ImageView fx:id="card2left" fitHeight="225.0" fitWidth="150.0" layoutX="100.0" layoutY="240.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
             <ImageView fx:id="card3left" fitHeight="225.0" fitWidth="150.0" layoutX="130.0" layoutY="270.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
             <ImageView fx:id="card4left" fitHeight="225.0" fitWidth="150.0" layoutX="160.0" layoutY="300.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
-            <Button fx:id="resetBet" disable="true" layoutX="14.0" layoutY="603.0" mnemonicParsing="false" prefHeight="33.0" prefWidth="302.0" text="REINITIALISER ">
+            <Button layoutX="14.0" layoutY="603.0" mnemonicParsing="false" onAction="#Reset" prefHeight="33.0" prefWidth="302.0" text="REINITIALISER ">
                <font>
                   <Font name="System Bold" size="20.0" />
                </font>
@@ -99,13 +99,23 @@
             <ImageView fx:id="card3right" fitHeight="225.0" fitWidth="150.0" layoutX="1030.0" layoutY="240.0" pickOnBounds="true" preserveRatio="true" rotate="-45.0" visible="false" />
             <ImageView fx:id="card2right" fitHeight="225.0" fitWidth="150.0" layoutX="1000.0" layoutY="270.0" pickOnBounds="true" preserveRatio="true" rotate="-45.0" visible="false" />
             <ImageView fx:id="card1right" fitHeight="225.0" fitWidth="150.0" layoutX="970.0" layoutY="300.0" pickOnBounds="true" preserveRatio="true" rotate="-45.0" visible="false" />
-            <TextArea editable="false" layoutX="1296.0" layoutY="49.0" opacity="0.36" prefHeight="679.0" prefWidth="290.0" wrapText="true">
+            <TextArea editable="false" layoutX="1296.0" layoutY="110.0" opacity="0.36" prefHeight="618.0" prefWidth="290.0" wrapText="true">
                <font>
                   <Font name="HP Simplified" size="12.0" />
                </font>
             </TextArea>
             <TextField layoutX="1296.0" layoutY="736.0" prefHeight="26.0" prefWidth="290.0" promptText="Entrez votre message" />
-            <TextField alignment="CENTER" editable="false" layoutX="1296.0" layoutY="14.0" prefHeight="26.0" prefWidth="290.0" text="Chat du serveur">
+            <TextField fx:id="textStatus" alignment="CENTER" editable="false" layoutX="1296.0" layoutY="14.0" prefHeight="26.0" prefWidth="290.0" text="En attente des mises">
+               <font>
+                  <Font name="HP Simplified Bold" size="12.0" />
+               </font>
+            </TextField>
+            <TextField fx:id="textPlayerCount" alignment="CENTER" editable="false" layoutX="1296.0" layoutY="49.0" prefHeight="26.0" prefWidth="290.0" text="Joueurs connectés : 0/3">
+               <font>
+                  <Font name="HP Simplified Bold" size="12.0" />
+               </font>
+            </TextField>
+            <TextField alignment="CENTER" editable="false" layoutX="1296.0" layoutY="83.0" prefHeight="26.0" prefWidth="290.0" text="Chat du serveur">
                <font>
                   <Font name="HP Simplified Bold" size="12.0" />
                </font>

@@ -6,6 +6,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.text.Text;
+import table.CardSR;
 import table.TableSR;
 
 import java.io.IOException;
@@ -67,9 +68,17 @@ public class Controller {
 
     @FXML
     TextField currentBet;
+    @FXML
+    TextField textStatus;
+    @FXML
+    TextField textPlayerCount;
 
     @FXML
     Button dealButton;
+    @FXML
+    Button hitButton;
+    @FXML
+    Button standButton;
 
     List<Text> textList = new ArrayList<>();
 
@@ -85,6 +94,8 @@ public class Controller {
         textList.add(playerNameLeft);
         textList.add(playerNameMiddle);
         textList.add(playerNameRight);
+
+        textStatus.setStyle("-fx-control-inner-background: green;");
 
         imageViews = new ImageView[4][4];
         imageViews[0][0] = card1left;
@@ -112,10 +123,27 @@ public class Controller {
     }
 
     public void testText(TableSR tbsr) {
+        if(tbsr.isGameInProgress()){
+            dealButton.setDisable(true);
+            textStatus.setStyle("-fx-control-inner-background: red;");
+            textStatus.setText("Partie en cours");
+        }else{
+            dealButton.setDisable(false);
+            textStatus.setStyle("-fx-control-inner-background: green;");
+            textStatus.setText("En attente des mises");
+        }
         clearText();
         clearImage();
+        textPlayerCount.setText("Joueurs connectés : " + tbsr.getClientList().size() + "/3");
+
+        hitButton.setDisable(!currentClient.isMyTurn());
+        standButton.setDisable(!currentClient.isMyTurn());
+        bet = currentClient.getCurrentBet();
+
         for (int i = 0; i < tbsr.getClientList().size(); i++) {
             currentBet.setText("Mise : " + bet + "€");
+            textList.get(i).setUnderline(tbsr.getClientList().get(i).isMyTurn());
+            logger.info("tour : " + tbsr.getClientList().get(i).isMyTurn() + " de " + tbsr.getClientList().get(i).getPseudo());
             textList.get(i).setText(tbsr.getClientList().get(i).getPseudo() + " | " + tbsr.getClientList().get(i).getCurrentBet() + "€");
             if(tbsr.getClientList().get(i).getCurrentHand()!= null){
                 for (int k = 0 ; k < tbsr.getClientList().get(i).getCurrentHand().getCardSRList().size() ; k++){
@@ -124,6 +152,26 @@ public class Controller {
                 }
             }
         }
+        if(tbsr.getCardSRDealerList() != null){
+            for(int i = 0 ; i < tbsr.getCardSRDealerList().size() ; i++){
+                if(tbsr.getCardSRDealerList().get(i).getHide()){
+                    imageViews[3][i].setImage(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/back_cards.png"))));
+                }else{
+                    imageViews[3][i].setImage(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/all/" + tbsr.getCardSRDealerList().get(i).getCardName() + ".png"))));
+                }
+                imageViews[3][i].setVisible(true);
+            }
+        }
+    }
+
+    @FXML
+    private void hitACard() throws IOException {
+        currentClient.setWantACard(true, true);
+    }
+
+    @FXML
+    private void stand() throws IOException {
+        currentClient.setWantToStay(true, true);
     }
 
     private void clearImage() {

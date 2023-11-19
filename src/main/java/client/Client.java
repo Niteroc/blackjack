@@ -41,6 +41,8 @@ public class Client implements Serializable, Runnable {
 
     private int balance = 0;
     private int currentBet = 0;
+
+    private int valeur = 0;
     private transient ObjectOutputStream writerObject;
     private transient Socket socket; // Ajoutez une variable membre pour le socket
 
@@ -50,22 +52,22 @@ public class Client implements Serializable, Runnable {
 
     private boolean hasBet = false;
 
+    private boolean myTurn = false;
+
+    private boolean endTurn = false;
+
+    private boolean wantACard = false;
+
+    private boolean wantToStay = false;
+
     public void run() {
         try {
 
-            while (pseudo.isEmpty()) { // on attend que le pseudo soit déifni pour poursuivre
-                try {
-                    Thread.sleep(100); // Ajoute un court délai pour ne pas surcharger le processeur
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            while (pseudo.isEmpty()) { // on attend que le pseudo soit défini pour poursuivre
+                Thread.sleep(100);
             }
 
             writerObject = new ObjectOutputStream(socket.getOutputStream());
-
-            /*SwingUtilities.invokeLater(() -> {
-                gui = new GUI(this);  // Instanciation de GUI et stockage de la référence
-            });*/
 
             // On charge les valeurs du client, si elles avaient été sauvegardées
             Client client = Server.findInList(savedClientList, this);
@@ -238,6 +240,11 @@ public class Client implements Serializable, Runnable {
         balance = clientModified.getBalance();
         currentHand = clientModified.getCurrentHand();
         hasBet = clientModified.hasBet();
+        myTurn = clientModified.isMyTurn();
+        endTurn = clientModified.isEndTurn();
+        valeur = clientModified.getValeur();
+        wantACard = clientModified.isWantACard();
+        wantToStay = clientModified.isWantToStay();
     }
 
     private void sendClient() throws IOException {
@@ -260,7 +267,7 @@ public class Client implements Serializable, Runnable {
         sendClient();
     }
 
-    public void setCurrentBet(int currentBet) throws IOException {
+    public void setCurrentBet(int currentBet) {
         this.currentBet = currentBet;
     }
 
@@ -284,8 +291,50 @@ public class Client implements Serializable, Runnable {
         if(toSend)sendClient();
     }
 
-    public void setHasBet(boolean hasBet) throws IOException {
+    public void setHasBet(boolean hasBet) {
         this.hasBet = hasBet;
+    }
+
+    public boolean isMyTurn() {
+        return myTurn;
+    }
+
+    public void setMyTurn(boolean myTurn) {
+        this.myTurn = myTurn;
+    }
+
+    public boolean isEndTurn() {
+        return endTurn;
+    }
+
+    public void setEndTurn(boolean endTurn) {
+        this.endTurn = endTurn;
+    }
+
+    public boolean isWantACard() {
+        return wantACard;
+    }
+
+    public void setWantACard(boolean wantACard, boolean toSend) throws IOException {
+        this.wantACard = wantACard;
+        if(toSend)sendClient();
+    }
+
+    public int getValeur() {
+        return valeur;
+    }
+
+    public void setValeur(int valeur) {
+        this.valeur = valeur;
+    }
+
+    public boolean isWantToStay() {
+        return wantToStay;
+    }
+
+    public void setWantToStay(boolean wantToStay, boolean toSend) throws IOException {
+        this.wantToStay = wantToStay;
+        if(toSend)sendClient();
     }
 
     @Override
@@ -296,7 +345,12 @@ public class Client implements Serializable, Runnable {
                 ", balance=" + balance +
                 ", currentBet=" + currentBet +
                 ", currentHand=" + currentHand +
+                ", valeur=" + valeur +
                 ", hasBet=" + hasBet +
+                ", myTurn=" + myTurn +
+                ", endTurn=" + endTurn +
+                ", wantACard=" + wantACard +
+                ", wantToStay=" + wantToStay +
                 '}';
     }
 
@@ -313,7 +367,7 @@ public class Client implements Serializable, Runnable {
     }
 
     public boolean hasSameProperty(Client c) {
-        return (balance == c.balance && hasBet == c.hasBet && currentHand.equals(c.currentHand));
+        return (balance == c.balance && hasBet == c.hasBet && currentHand.equals(c.currentHand) && wantACard == c.wantACard && endTurn == c.isEndTurn() && wantToStay == c.wantToStay);
     }
 
     @Override

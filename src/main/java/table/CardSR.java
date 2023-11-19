@@ -10,27 +10,52 @@ import java.util.Objects;
 
 public class CardSR implements Serializable {
 
+    private String cardName;
+
+    private boolean hide = false;
+
+    private int value;
+
+    private boolean isAnAce = false;
+
+    public CardSR(int color, int value) { // 1Pique - 2Coeur - 3Carreau - 4Trèfle // between [1-10 - 11Valet - 12Dame - 13Roi]
+        if (value == 1) isAnAce = true;
+        this.cardName = "" + value + color;
+        if (value > 10)value = 10;
+        this.value = value;
+    }
+
     public String getCardName() {
         return cardName;
     }
 
-    private String cardName;
+    public boolean getHide() {
+        return hide;
+    }
 
-    private int color; // 1Pique - 2Coeur - 3Carreau - 4Trèfle
+    public void setHide(boolean hide) {
+        this.hide = hide;
+    }
 
-    private int value; // between [1-10 - 11Valet - 12Dame - 13Roi]
+    public int getValue() {
+        return value;
+    }
 
-    public CardSR(int color, int value) {
-        this.color = color;
+    public void setValue(int value) {
         this.value = value;
-        this.cardName = "" + value + color;
+    }
+
+    public boolean isAnAce() {
+        return isAnAce;
+    }
+
+    public void setAnAce(boolean anAce) {
+        isAnAce = anAce;
     }
 
     @Override
     public String toString() {
-        return "CardSR{" +
-                "carte=" + cardName +
-                '}';
+        return "CardSR{" + "cardName='" + cardName + '\'' + ", hide=" + hide + '}';
     }
 
     @Override
