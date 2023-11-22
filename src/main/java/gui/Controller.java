@@ -89,6 +89,8 @@ public class Controller {
     Button hitButton;
     @FXML
     Button standButton;
+    @FXML
+    Button doubleDown;
 
     List<Text> textList = new ArrayList<>();
 
@@ -164,6 +166,7 @@ public class Controller {
 
         hitButton.setDisable(!currentClient.isMyTurn());
         standButton.setDisable(!currentClient.isMyTurn());
+        doubleDown.setDisable(!currentClient.isMyTurn());
         dealButton.setDisable(currentClient.hasBet());
 
         for (int i = 0; i < tbsr.getClientList().size(); i++) {
@@ -219,7 +222,7 @@ public class Controller {
     @FXML
     public void Bet1() {
 
-        if ((currentClient.canBet(1))) {
+        if ((currentClient.canBet(bet-1))) {
             bet += 1;
             bank -= 1;
             currentBet.setText("Mise : " + bet + "€");
@@ -233,7 +236,7 @@ public class Controller {
     @FXML
     public void Bet5() {
 
-        if ((currentClient.canBet(5))) {
+        if ((currentClient.canBet(bet-5))) {
             bet += 5;
             bank -= 5;
             currentBet.setText("Mise : " + bet + "€");
@@ -247,7 +250,7 @@ public class Controller {
     @FXML
     public void Bet25() {
 
-        if ((currentClient.canBet(25))) {
+        if ((currentClient.canBet(bet-25))) {
             bet += 25;
             bank -= 25;
             currentBet.setText("Mise : " + bet + "€");
@@ -261,7 +264,7 @@ public class Controller {
     @FXML
     public void Bet50() {
 
-        if ((currentClient.canBet(50))) {
+        if ((currentClient.canBet(bet-50))) {
             bet += 50;
             bank -= 50;
             currentBet.setText("Mise : " + bet + "€");
@@ -275,7 +278,7 @@ public class Controller {
     @FXML
     public void Bet100() {
 
-        if ((currentClient.canBet(100))) {
+        if ((currentClient.canBet(bet-100))) {
             bet += 100;
             bank -= 100;
             currentBet.setText("Mise : " + bet + "€");
@@ -289,7 +292,7 @@ public class Controller {
     @FXML
     public void Bet500() {
 
-        if ((currentClient.canBet(500))) {
+        if ((currentClient.canBet(bet-500))) {
             bet += 500;
             bank -= 500;
             currentBet.setText("Mise : " + bet + "€");
@@ -322,6 +325,21 @@ public class Controller {
             bet = 0;
             currentBet.setText("Mise : " + bet + "€");
             currentBalance.setText("Banque : " + currentClient.getBalance() + "€");
+            bankrupt.setVisible(false);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+    }
+
+    @FXML
+    public void DoubleDown() {
+
+        try {
+            currentClient.setBalance(currentClient.getBalance()-currentClient.getCurrentBet(),false);
+            currentClient.setCurrentBet(currentClient.getCurrentBet()*2);
+            currentClient.setWantACard(true,false);
+            currentClient.setWantToStay(true,true);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
@@ -332,5 +350,6 @@ public class Controller {
         dealButton.setDisable(true);
         standButton.setDisable(true);
         hitButton.setDisable(true);
+        doubleDown.setDisable(true);
     }
 }

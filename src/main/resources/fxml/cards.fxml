@@ -65,12 +65,12 @@
                   <Font name="System Bold" size="40.0" />
                </font>
             </Button>
-          <Button fx:id="hitButton" disable="true" layoutX="516.0" layoutY="713.0" mnemonicParsing="false" onAction="#hitACard" prefHeight="46.0" prefWidth="128.0" text="TIRER">
+          <Button fx:id="hitButton" disable="true" layoutX="447.0" layoutY="711.0" mnemonicParsing="false" onAction="#hitACard" prefHeight="46.0" prefWidth="128.0" text="TIRER">
                <font>
                   <Font name="System Bold" size="25.0" />
                </font>
             </Button>
-            <Button fx:id="standButton" disable="true" layoutX="656.0" layoutY="713.0" mnemonicParsing="false" onAction="#stand" prefHeight="46.0" prefWidth="128.0" text="RESTER">
+            <Button fx:id="standButton" disable="true" layoutX="587.0" layoutY="711.0" mnemonicParsing="false" onAction="#stand" prefHeight="46.0" prefWidth="128.0" text="RESTER">
                <font>
                   <Font name="System Bold" size="25.0" />
                </font>
@@ -127,6 +127,11 @@
                   <Font name="HP Simplified" size="25.0" />
                </font>
             </Text>
+            <Button fx:id="doubleDown" disable="true" layoutX="731.0" layoutY="711.0" mnemonicParsing="false" onAction="#DoubleDown" prefHeight="54.0" prefWidth="150.0" text="DOUBLER">
+               <font>
+                  <Font name="System Bold" size="25.0" />
+               </font>
+            </Button>
       </children>
     </AnchorPane>
   </children>

@@ -331,7 +331,8 @@ public class Client implements Serializable, Runnable, Cloneable {
     }
 
     public boolean canBet(int bet){
-        return getBalance() > bet;
+        logger.info("--"+bet+"--"+this.getBalance());
+        return (this.getBalance() > bet);
     }
 
     public boolean isMyTurn() {
