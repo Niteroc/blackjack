@@ -19,6 +19,8 @@ public class TableSR implements Serializable {
 
     private boolean isGameInProgress = false;
 
+    private boolean isGameFinished = false;
+
     private HandSR handDealer = new HandSR();
 
     private List<Client> clientList = new ArrayList<>();
@@ -68,6 +70,12 @@ public class TableSR implements Serializable {
         }
         return client;
     }
+
+    public void setEndGame(boolean isGameFinished) {
+        this.isGameFinished = isGameFinished;
+    }
+
+    public boolean isGameFinished() { return isGameFinished; }
 
     /**
      * Renvoie la main du croupier.

@@ -51,10 +51,7 @@ public class HandSR implements Serializable, Cloneable {
      * @return La valeur totale de la main.
      */
     public int getValue() {
-        value = 0;
-        for (CardSR cardSR : getCardSRList()) {
-            value += cardSR.getValue();
-        }
+        tryToUpValue();
         return value;
     }
 
@@ -100,11 +97,14 @@ public class HandSR implements Serializable, Cloneable {
     }
 
     public void tryToUpValue() {
+        value = 0;
         for (CardSR cardSR : cardSRList) {
+            if(!cardSR.isAnAce())value += cardSR.getValue();
+        }
+        for(CardSR cardSR : cardSRList){
             if (cardSR.isAnAce()) {
+                value += cardSR.getValue();
                 if (value + 10 <= 21) value += 10;
-            } else {
-                return;
             }
         }
     }

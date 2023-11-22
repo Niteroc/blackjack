@@ -48,6 +48,8 @@ public class TableHandler implements Runnable {
     private final Object lock = new Object();
     private boolean sendTableLaunched = false;
 
+    private boolean endGame = false;
+
     /**
      * Initialise un gestionnaire de table.
      *
@@ -109,6 +111,7 @@ public class TableHandler implements Runnable {
                         hasDealerPlayed = false;
                         hasDealerShowTheSecondCard = false;
                         nbrGame++;
+                        endGame = true;
                         currentClientList.clear();
                     }
 
@@ -121,7 +124,6 @@ public class TableHandler implements Runnable {
                     if (hasDealerShowTheSecondCard) {
                         while (shouldHit(dealerHand)) {
                             dealerHand.addCardToList(getRandomCard());
-                            dealerHand.tryToUpValue();
                         }
                         hasDealerPlayed = true;
                     }
@@ -133,6 +135,7 @@ public class TableHandler implements Runnable {
 
                     tbsr.setHandDealer(dealerHand);
                     tbsr.setGameInProgress(gameInProgress);
+                    tbsr.setEndGame(endGame);
 
                     needToSend(false);
 
@@ -163,13 +166,13 @@ public class TableHandler implements Runnable {
             if (!gameInProgress && cpt == clientList.size() && cpt != 0) { // si égal au nombre de joueurs alors tout le monde a parié
 
                 gameInProgress = true;
+                endGame = false;
                 logger.info("Les jeux sont faits");
                 logger.info("Rien ne va plus");
 
                 if (nbrGame % 10 == 0) setCardGame(); // on mélange les cartes tous les 10 tours
                 for (Client client : clientList) {
                     drawCards(client, 2);
-                    client.setBalance(client.getBalance() - client.getCurrentBet(), false);
                     client.setGain(0);
                 }
 
@@ -207,7 +210,6 @@ public class TableHandler implements Runnable {
                     } else if (currentClientList.get(i).isWantToStay()) {
                         currentClientList.get(i).setEndTurn(true);
                         currentClientList.get(i).setMyTurn(false);
-                        currentClientList.get(i).getCurrentHand().tryToUpValue();
                         currentClientList.get(i).setWantToStay(false, false);
                         if (currentClientList.get(i) == currentClientList.get(currentClientList.size() - 1)) {
                             hasAllPlayed = true;
@@ -223,6 +225,7 @@ public class TableHandler implements Runnable {
 
             tbsr.setHandDealer(dealerHand);
             tbsr.setGameInProgress(gameInProgress);
+            tbsr.setEndGame(endGame);
 
             // Envoi de la table si elle a été modifiée (check des listes et dealer)
             needToSend(force);
@@ -384,7 +387,6 @@ public class TableHandler implements Runnable {
      * @param numberToDraw Le nombre de cartes à distribuer.
      */
     private void drawCards(Client client, int numberToDraw) {
-
         for (int i = 0; i < numberToDraw; i++) {
             CardSR cardSR = getRandomCard();
             client.getCurrentHand().addCardToList(cardSR);

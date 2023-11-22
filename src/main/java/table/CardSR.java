@@ -26,7 +26,6 @@ public class CardSR implements Serializable {
         if (value == 1) isAnAce = true;
         this.cardName = "" + value + color;
         if (value > 10)value = 10;
-        if(isAnAce) value = 11;
         this.value = value;
     }
 
@@ -44,10 +43,6 @@ public class CardSR implements Serializable {
 
     public int getValue() {
         return value;
-    }
-
-    public void setValue(int value) {
-        this.value = value;
     }
 
     /**
