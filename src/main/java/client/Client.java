@@ -38,7 +38,7 @@ public class Client implements Serializable, Runnable, Cloneable {
 
     private String pseudo = "";
 
-    private int balance = 0;
+    private int balance;
     private int currentBet = 0;
     private transient ObjectOutputStream writerObject;
     private transient Socket socket; // Ajoutez une variable membre pour le socket
@@ -375,6 +375,8 @@ public class Client implements Serializable, Runnable, Cloneable {
     public void setGain(int gain) {
         this.gain = gain;
     }
+
+    public boolean canBet(int bet, int bank) { return(bet <= bank); }
 
     @Override
     public String toString() {

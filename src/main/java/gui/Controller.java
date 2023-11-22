@@ -70,6 +70,9 @@ public class Controller {
     private ImageView[][] imageViews;
 
     private int bet = 0;
+    private int bank;
+    @FXML
+    Text bankrupt;
 
     @FXML
     TextField currentBet;
@@ -146,7 +149,7 @@ public class Controller {
      *
      * @param tbsr L'état de la table de jeu.
      */
-    public void testText(TableSR tbsr) {
+    public void testText(TableSR tbsr) throws IOException {
         if (tbsr.isGameInProgress()) {
             textStatus.setStyle("-fx-control-inner-background: red;");
             textStatus.setText("Partie en cours");
@@ -166,6 +169,7 @@ public class Controller {
         for (int i = 0; i < tbsr.getClientList().size(); i++) {
             textList.get(i).setUnderline(tbsr.getClientList().get(i).isMyTurn());
             textList.get(i).setText(tbsr.getClientList().get(i).getPseudo() + " | " + tbsr.getClientList().get(i).getCurrentBet() + "€");
+            bank = currentClient.getBalance();
             currentBalance.setText("Banque : " + currentClient.getBalance() + "€");
             if (tbsr.getClientList().get(i).getCurrentHand() != null) {
                 for (int k = 0; k < tbsr.getClientList().get(i).getCurrentHand().getCardSRList().size(); k++) {
@@ -215,48 +219,84 @@ public class Controller {
     @FXML
     public void Bet1() {
 
-        bet += 1;
-        currentBet.setText("Mise : " + bet + "€");
+        if((currentClient.canBet(1))) {
+            bet += 1;
+            bank -= 1;
+            currentBet.setText("Mise : " + bet + "€");
+            currentBalance.setText("Banque :" + bank + "€");
+        }else {
+            bankrupt.setVisible(true);
+        }
 
     }
 
     @FXML
     public void Bet5() {
 
-        bet += 5;
-        currentBet.setText("Mise : " + bet + "€");
+        if((currentClient.canBet(5))) {
+            bet += 5;
+            bank -= 5;
+            currentBet.setText("Mise : " + bet + "€");
+            currentBalance.setText("Banque :" + bank + "€");
+        }else {
+            bankrupt.setVisible(true);
+        }
 
     }
 
     @FXML
     public void Bet25() {
 
-        bet += 25;
-        currentBet.setText("Mise : " + bet + "€");
+        if((currentClient.canBet(25))) {
+            bet += 25;
+            bank -= 25;
+            currentBet.setText("Mise : " + bet + "€");
+            currentBalance.setText("Banque :" + bank + "€");
+        }else {
+            bankrupt.setVisible(true);
+        }
 
     }
 
     @FXML
     public void Bet50() {
 
-        bet += 50;
-        currentBet.setText("Mise : " + bet + "€");
+        if((currentClient.canBet(50))) {
+            bet += 50;
+            bank -= 50;
+            currentBet.setText("Mise : " + bet + "€");
+            currentBalance.setText("Banque :" + bank + "€");
+        }else {
+            bankrupt.setVisible(true);
+        }
 
     }
 
     @FXML
     public void Bet100() {
 
-        bet += 100;
-        currentBet.setText("Mise : " + bet + "€");
+        if((currentClient.canBet(100))) {
+            bet += 100;
+            bank -= 100;
+            currentBet.setText("Mise : " + bet + "€");
+            currentBalance.setText("Banque :" + bank + "€");
+        }else {
+            bankrupt.setVisible(true);
+        }
 
     }
 
     @FXML
     public void Bet500() {
 
-        bet += 500;
-        currentBet.setText("Mise : " + bet + "€");
+        if((currentClient.canBet(500))) {
+            bet += 500;
+            bank -= 500;
+            currentBet.setText("Mise : " + bet + "€");
+            currentBalance.setText("Banque :" + bank + "€");
+        }else {
+            bankrupt.setVisible(true);
+        }
 
     }
 
@@ -264,7 +304,10 @@ public class Controller {
     public void Reset() {
 
         bet = 0;
+        bank = currentClient.getBalance();
         currentBet.setText("Mise : " + bet + "€");
+        currentBalance.setText("Banque :"+bank+"€");
+        bankrupt.setVisible(false);
 
     }
 
@@ -274,6 +317,11 @@ public class Controller {
         try {
             currentClient.setHasBet(true, bet, true);
             blockAction();
+            currentClient.setBalance(bank,true);
+            dealButton.setDisable(true);
+            bet = 0;
+            currentBet.setText("Mise : " + bet + "€");
+            currentBalance.setText("Banque :"+currentClient.getBalance()+"€");
             bet = 0;
             currentBet.setText("Mise : " + bet + "€");
         } catch (IOException ex) {

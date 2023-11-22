@@ -11,7 +11,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="777.0" prefWidth="1599.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.Controller">
+<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="777.0" prefWidth="1599.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.Controller">
   <children>
     <AnchorPane fx:id="mainPane" maxHeight="-1.0" maxWidth="-1.0" prefWidth="1600.0" style="-fx-background-color: #00512c;" VBox.vgrow="ALWAYS">
       <children>
@@ -122,6 +122,11 @@
                   <Font name="HP Simplified Bold" size="12.0" />
                </font>
             </TextField>
+            <Text fx:id="bankrupt" fill="RED" layoutX="51.0" layoutY="582.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Banque insuffisante" textAlignment="CENTER" visible="false" wrappingWidth="228.0">
+               <font>
+                  <Font name="HP Simplified" size="25.0" />
+               </font>
+            </Text>
       </children>
     </AnchorPane>
   </children>

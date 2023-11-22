@@ -188,7 +188,7 @@ public class Server {
         for (Client client : clientList) {
             if (client.getPseudo().equals(clientToFind.getPseudo())) return client;
         }
-        clientToFind.setBalance(10000, false);
+        clientToFind.setBalance(10000,false);
         return clientToFind;
     }
 }
