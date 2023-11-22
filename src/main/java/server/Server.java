@@ -1,6 +1,7 @@
 package server;
 
 import client.Client;
+import table.HandSR;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -16,6 +17,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Classe représentant le serveur du jeu de Blackjack.
+ */
 public class Server {
     private static final int PORT = 12345;
     private static final int MAX_CLIENTS = 5;
@@ -24,15 +28,32 @@ public class Server {
 
     private static List<Client> listClientConnected = new ArrayList<>();
 
-    public synchronized static void clientLogin(Client client){
+    /**
+     * Méthode pour gérer la connexion d'un client.
+     * Ajoute le client à la liste des clients connectés.
+     *
+     * @param client Le client connecté à ajouter à la liste.
+     */
+    public synchronized static void clientLogin(Client client) {
         listClientConnected.add(client);
     }
 
-    public synchronized static void clientLogout(Client client){
+    /**
+     * Méthode pour gérer la déconnexion d'un client.
+     * Supprime le client de la liste des clients connectés.
+     *
+     * @param client Le client déconnecté à supprimer de la liste.
+     */
+    public synchronized static void clientLogout(Client client) {
         listClientConnected.remove(client);
     }
 
-    @SuppressWarnings("unchecked") // pour le cast de object en List<Client>
+    /**
+     * Méthode pour charger la liste des clients à partir d'un fichier sérialisé.
+     *
+     * @return La liste des clients chargée depuis le fichier ou une liste vide si le fichier est vide ou n'existe pas.
+     */
+    @SuppressWarnings("unchecked")
     public static List<Client> loadClientsList() {
         File clientsFile = new File("clients.ser");
         if (!clientsFile.exists() || clientsFile.length() == 0) {
@@ -57,11 +78,22 @@ public class Server {
         return new ArrayList<>();
     }
 
+    /**
+     * Méthode principale pour lancer le serveur.
+     * Crée une instance du serveur.
+     *
+     * @param args Arguments de la ligne de commande.
+     */
     public static void main(String[] args) {
         new Server();
     }
 
+    /**
+     * Constructeur de la classe Server.
+     * Initialise le serveur et gère les connexions des clients.
+     */
     public Server() {
+        // ... Contenu du constructeur
         ServerSocket serverSocket = null;
 
         tpe = new ThreadPoolExecutor(MAX_CLIENTS * 5, MAX_CLIENTS * 5, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
@@ -109,27 +141,34 @@ public class Server {
         }
     }
 
-    public static void logPlayerCount(){
+    public static void logPlayerCount() {
         logger.info("Clients connectés au serveur : " + listClientConnected.toString());
     }
 
+    /**
+     * Méthode pour enregistrer un client dans un fichier sérialisé.
+     * Réinitialise les informations du client avant l'enregistrement.
+     *
+     * @param client Le client à enregistrer dans le fichier.
+     * @throws IOException En cas d'erreur d'entrée/sortie lors de l'enregistrement.
+     */
     public void saveClient(Client client) throws IOException {
 
         List<Client> clients = loadClientsList();
 
-        try{
+        try {
             clients.remove(findInList(clients, client));
-        }catch (Exception e){
+        } catch (Exception e) {
             // ne rien faire -- fichier vide
         }
 
-        client.setCurrentHand(null);
-        client.setCurrentBet(0);
-        client.setHasBet(false);
+        client.setCurrentHand(new HandSR());
+        client.setHasBet(false, 0, false);
         client.setMyTurn(false);
         client.setEndTurn(false);
         client.setWantACard(false, false);
-        client.setValeur(0);
+        client.setWantToStay(false, false);
+        client.setGain(0);
         clients.add(client);
         Server.clientLogout(client);
         Server.logPlayerCount();
@@ -143,9 +182,16 @@ public class Server {
         }
     }
 
-    public static Client findInList(List<Client> clientList, Client clientToFind){
-        for(Client client : clientList){
-            if(client.getPseudo().equals(clientToFind.getPseudo()))return client;
+    /**
+     * Méthode pour rechercher un client dans une liste de clients.
+     *
+     * @param clientList   La liste de clients dans laquelle effectuer la recherche.
+     * @param clientToFind Le client à rechercher dans la liste.
+     * @return Le client trouvé dans la liste ou le client à trouver s'il n'est pas présent.
+     */
+    public static Client findInList(List<Client> clientList, Client clientToFind) {
+        for (Client client : clientList) {
+            if (client.getPseudo().equals(clientToFind.getPseudo())) return client;
         }
         return clientToFind;
     }

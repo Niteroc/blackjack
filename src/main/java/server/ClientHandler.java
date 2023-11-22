@@ -4,19 +4,31 @@ import client.Client;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Gère les communications avec un client connecté au serveur de Blackjack.
+ */
 public class ClientHandler implements Runnable {
 
+    /**
+     * Retourne le socket du client.
+     *
+     * @return Le socket du client.
+     */
     public Socket getClientSocket() {
         return clientSocket;
     }
 
     private final Socket clientSocket;
 
+    /**
+     * Retourne le client associé à ce gestionnaire de client.
+     *
+     * @return Le client associé.
+     */
     public Client getClient() {
         return client;
     }
@@ -30,7 +42,16 @@ public class ClientHandler implements Runnable {
 
     private Server server;
 
-    public ClientHandler(Socket clientSocket, TableHandler tableHandler, Server server) throws IOException, URISyntaxException {
+    /**
+     * Initialise le gestionnaire de client avec le socket du client, le gestionnaire de table et le serveur.
+     *
+     * @param clientSocket Le socket du client.
+     * @param tableHandler Le gestionnaire de table associé.
+     * @param server       Le serveur associé.
+     * @throws IOException          En cas d'erreur d'entrée/sortie.
+     * @throws InterruptedException En cas d'interruption de l'exécution.
+     */
+    public ClientHandler(Socket clientSocket, TableHandler tableHandler, Server server) throws IOException, InterruptedException {
         this.clientSocket = clientSocket;
         this.tableHandler = tableHandler;
         this.server = server;
@@ -52,12 +73,15 @@ public class ClientHandler implements Runnable {
 
     }
 
+    /**
+     * Démarre le traitement des mises à jour du client.
+     */
     @Override
     public void run() {
         try {
             while (true) { // en écoute des maj du joueur
                 client = (Client) readerObject.readObject();
-                System.out.println("Mise à jour reçue du client (" + client.getId() + ") - " + client.getPseudo() + " de la table " + TableHandler.getId());
+                System.out.println("Mise à jour reçue du client  : " + client);
                 tableHandler.updateClient(client);
             }
 
@@ -90,8 +114,6 @@ public class ClientHandler implements Runnable {
 
     @Override
     public String toString() {
-        return "ClientHandler{" +
-                "client=" + client +
-                '}';
+        return "ClientHandler{" + "client=" + client + '}';
     }
 }

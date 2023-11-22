@@ -5,72 +5,93 @@ import server.ClientHandler;
 import server.TableHandler;
 
 import java.io.Serializable;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.logging.Logger;
 
+/**
+ * Cette classe représente l'état d'une table de jeu.
+ */
 public class TableSR implements Serializable {
 
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
     private static final long serialVersionUID = 1L;
 
-    private HashMap<Client, HandSR> handSRClientHashMap = new HashMap<Client, HandSR>(); // relation entre un Client et sa Main
+    private boolean isGameInProgress = false;
 
+    private HandSR handDealer = new HandSR();
+
+    private List<Client> clientList = new ArrayList<>();
+
+    /**
+     * Constructeur par défaut de la classe TableSR.
+     */
+    public TableSR() {
+    }
+
+    /**
+     * Renvoie la liste des clients de la table.
+     *
+     * @return La liste des clients de la table.
+     */
     public List<Client> getClientList() {
         return clientList;
     }
 
+    /**
+     * Modifie l'état de la partie en cours ou non.
+     *
+     * @param gameInProgress État de la partie en cours ou non.
+     */
     public void setGameInProgress(boolean gameInProgress) {
         isGameInProgress = gameInProgress;
     }
 
+    /**
+     * Vérifie si une partie est en cours sur cette table.
+     *
+     * @return true si une partie est en cours, sinon false.
+     */
     public boolean isGameInProgress() {
         return isGameInProgress;
     }
 
-    private boolean isGameInProgress = false;
-
-
-
-    public List<CardSR> getCardSRDealerList() {
-        return cardSRDealerList;
-    }
-
-    public void setCardSRDealerList(List<CardSR> cardSRDealerList) {
-        this.cardSRDealerList = cardSRDealerList;
-    }
-
-    private List<CardSR> cardSRDealerList = new ArrayList<>();
-
-    public HandSR retrievePlayerHand(Client client){
-        return handSRClientHashMap.get(client);
-    }
-
-    public Client findClientByHand(HandSR handSR){
-        for (Map.Entry<Client, HandSR> entry : handSRClientHashMap.entrySet()) {
-            if (entry.getValue().equals(handSR)) {
-                return entry.getKey();
-            }
-        }
-        return null;
-    }
-
-    public Client getClientModification(Client client){
-        for (Client client1 : clientList){
-            if(client1.equals(client))return client1;
+    /**
+     * Récupère un client de la table pour une modification ultérieure.
+     *
+     * @param client Le client dont on souhaite obtenir une copie de référence.
+     * @return Le client de la table correspondant ou le client lui-même s'il n'est pas présent dans la table.
+     */
+    public Client getClientModification(Client client) {
+        for (Client client1 : clientList) {
+            if (client1.equals(client)) return client1;
         }
         return client;
     }
 
-    private List<Client> clientList = new ArrayList<>();
-
-    public TableSR() {}
-
-    public int getTableHandlerId() {
-        return TableHandler.getId();
+    /**
+     * Renvoie la main du croupier.
+     *
+     * @return La main du croupier.
+     */
+    public HandSR getHandDealer() {
+        return handDealer;
     }
 
+    /**
+     * Définit la main du croupier.
+     *
+     * @param handDealer La main du croupier à définir.
+     */
+    public void setHandDealer(HandSR handDealer) {
+        this.handDealer = handDealer;
+    }
+
+    /**
+     * Renvoie une représentation textuelle de l'objet TableSR.
+     *
+     * @return Une chaîne de caractères représentant l'objet TableSR.
+     */
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder("TableSR{\n");
@@ -79,19 +100,24 @@ public class TableSR implements Serializable {
             stringBuilder.append("\t").append(client).append('\n');
         }
 
-        stringBuilder.append("\t").append(cardSRDealerList).append('\n');
+        stringBuilder.append("\t").append(handDealer).append('\n');
 
         stringBuilder.append("}");
 
         return stringBuilder.toString();
     }
+
+    /**
+     * Met à jour un client dans la table ou l'ajoute s'il n'existe pas encore.
+     *
+     * @param c Le client à mettre à jour ou à ajouter dans la table.
+     */
     public void updateClient(Client c) {
         logger.info(c.getPseudo() + " inséré/maj dans la table " + TableHandler.getId() + " // déjà existant : " + clientList.contains(c));
-        if(!clientList.contains(c)){
+        if (!clientList.contains(c)) {
             clientList.add(c);
-            handSRClientHashMap.put(c, new HandSR());
-        }else{
-            clientList.set(clientList.indexOf(c),c);
+        } else {
+            clientList.set(clientList.indexOf(c), c);
         }
     }
 

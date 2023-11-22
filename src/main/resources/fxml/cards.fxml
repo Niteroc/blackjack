@@ -15,7 +15,7 @@
   <children>
     <AnchorPane fx:id="mainPane" maxHeight="-1.0" maxWidth="-1.0" prefWidth="1600.0" style="-fx-background-color: #00512c;" VBox.vgrow="ALWAYS">
       <children>
-            <TextField fx:id="Balance" editable="false" layoutX="14.0" layoutY="713.0" prefHeight="46.0" prefWidth="302.0" text="Banque : 0€">
+            <TextField fx:id="currentBalance" editable="false" layoutX="14.0" layoutY="713.0" prefHeight="46.0" prefWidth="302.0" text="Banque : 0€">
                <font>
                   <Font size="24.0" />
                </font></TextField>
@@ -82,9 +82,11 @@
                </font>
             </Text>
             <ImageView fx:id="card1left" fitHeight="225.0" fitWidth="150.0" layoutX="70.0" layoutY="210.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
-            <ImageView fx:id="card2left" fitHeight="225.0" fitWidth="150.0" layoutX="100.0" layoutY="240.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
-            <ImageView fx:id="card3left" fitHeight="225.0" fitWidth="150.0" layoutX="130.0" layoutY="270.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
-            <ImageView fx:id="card4left" fitHeight="225.0" fitWidth="150.0" layoutX="160.0" layoutY="300.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
+            <ImageView fx:id="card2left" fitHeight="225.0" fitWidth="150.0" layoutX="90.0" layoutY="230.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
+            <ImageView fx:id="card3left" fitHeight="225.0" fitWidth="150.0" layoutX="110.0" layoutY="250.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
+            <ImageView fx:id="card4left" fitHeight="225.0" fitWidth="150.0" layoutX="130.0" layoutY="270.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
+            <ImageView fx:id="card5left" fitHeight="225.0" fitWidth="150.0" layoutX="150.0" layoutY="290.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
+            <ImageView fx:id="card6left" fitHeight="225.0" fitWidth="150.0" layoutX="170.0" layoutY="310.0" pickOnBounds="true" preserveRatio="true" rotate="45.0" visible="false" />
             <Button layoutX="14.0" layoutY="603.0" mnemonicParsing="false" onAction="#Reset" prefHeight="33.0" prefWidth="302.0" text="REINITIALISER ">
                <font>
                   <Font name="System Bold" size="20.0" />

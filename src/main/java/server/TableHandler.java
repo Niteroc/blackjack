@@ -6,12 +6,13 @@ import table.HandSR;
 import table.TableSR;
 
 import java.io.*;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Logger;
 
+/**
+ * Gère les interactions entre les clients, les mains et les cartes sur la table de Blackjack.
+ */
 public class TableHandler implements Runnable {
 
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
@@ -32,11 +33,363 @@ public class TableHandler implements Runnable {
 
     private boolean gameInProgress = false;
 
-    private List<CardSR> cardDealerList = new ArrayList<>();
+    private boolean hasAllPlayed = false;
+
+    private boolean hasDealerPlayed = false;
+
+    private HandSR dealerHand = new HandSR();
+
+    private HandSR dealerHandSave = new HandSR();
+
+    private int nbrGame = 0;
 
     private List<Client> currentClientList = new ArrayList<>(); // cette liste contient que les joueurs qui jouent actuellement
 
+    private final Object lock = new Object();
+    private boolean sendTableLaunched = false;
+
+    /**
+     * Initialise un gestionnaire de table.
+     *
+     * @throws IOException En cas d'erreur d'entrée/sortie.
+     */
     public TableHandler() throws IOException {
+    }
+
+    /**
+     * Méthode exécutée lors du démarrage du thread de la table.
+     */
+    @Override
+    public void run() {
+        while (true) {
+            try {
+
+                synchronized (lock) {
+                    while (sendTableLaunched) {
+                        lock.wait(); // Met le thread en attente jusqu'à ce que sendTable() soit appelé
+                    }
+                }
+
+                if (gameInProgress) {
+
+                    // Phase où la partie est encore en cours mais les joueurs ont tous finis
+                    if (!hasActivePlayer()) {
+                        for (Client client : currentClientList) {
+
+                            // gain
+                            if (client.getCurrentHand().getValue() <= 21) {
+                                if (client.getCurrentHand().getValue() > dealerHand.getValue()) {
+                                    if (client.getCurrentHand().isABlackJack()) {
+                                        client.setGain((int) (client.getCurrentBet() * 2.5));
+                                    } else {
+                                        client.setGain(client.getCurrentBet() * 2);
+                                    }
+                                } else if ((client.getCurrentHand().getValue() == dealerHand.getValue())) {
+                                    client.setGain(client.getCurrentBet());
+                                } else {
+                                    client.setGain(0);
+                                }
+                            } else {
+                                client.setGain(0);
+                            }
+
+                            if (client.getCurrentHand() != null) client.getCurrentHand().clearCardList();
+                            client.setEndTurn(false);
+                            client.setMyTurn(false);
+                            client.setCurrentBet(0);
+                            client.setBalance(client.getBalance() + client.getGain(), false);
+                        }
+
+                        dealerHand.clearCardList();
+                        dealerHandSave = dealerHand.clone();
+
+                        logger.info("Fin de la partie. \n En attente de nouvelles mises.");
+                        logger.info("Faites vos jeux");
+
+                        gameInProgress = false;
+                        hasAllPlayed = false;
+                        hasDealerPlayed = false;
+                        nbrGame++;
+                        currentClientList.clear();
+                    }
+
+                    for (Client client : currentClientList) {
+                        if (hasDealerPlayed) {
+                            client.setHasBet(false, client.getCurrentBet(), false);
+                        }
+                        if (hasAllPlayed) {
+                            dealerHand.getCardSRList().get(1).setHide(false);
+                            while (shouldHit(dealerHand)) {
+                                dealerHand.addCardToList(getRandomCard());
+                                dealerHand.tryToUpValue();
+                            }
+                            hasDealerPlayed = true;
+                        }
+                    }
+
+                    tbsr.setHandDealer(dealerHand);
+                    tbsr.setGameInProgress(gameInProgress);
+
+                    needToSend("run");
+
+                }
+
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    /**
+     * Envoie la table aux clients connectés.
+     */
+    public void sendTable() {
+        try {
+
+            int cpt = 0;
+
+            // On compte le nombre de client qui ont misé
+            for (Client client : clientList) {
+                if (client.hasBet() && (client.getCurrentHand() == null || client.getCurrentHand().getCardSRList().isEmpty())) {
+                    cpt++;
+                }
+            }
+
+            // Si tous les joueurs ont misés, on leur attribue les deux premières cartes
+            if (!gameInProgress && cpt == clientList.size() && cpt != 0) { // si égal au nombre de joueurs alors tout le monde a parié
+
+                gameInProgress = true;
+                logger.info("Les jeux sont faits");
+                logger.info("Rien ne va plus");
+
+                if (nbrGame % 10 == 0) setCardGame(); // on mélange les cartes tous les 10 tours
+                for (Client client : clientList) {
+                    drawCards(client, 2);
+                    client.setBalance(client.getBalance() - client.getCurrentBet(), false);
+                    client.setGain(0);
+                }
+
+                currentClientList.clear();
+                currentClientList.addAll(clientList);
+                clientList.get(0).setMyTurn(true);
+
+                /// On instancie les deux premières cartes du dealer
+                CardSR card = getRandomCard();
+                dealerHand.addCardToList(card);
+                card = getRandomCard();
+                card.setHide(true); // face cachée
+                dealerHand.addCardToList(card);
+                dealerHandSave = dealerHand.clone();
+            }
+
+            // Action dans la partie, tout à tour
+            if (gameInProgress) {
+                for (int i = 0; i < currentClientList.size(); i++) {
+                    if (currentClientList.get(i).isEndTurn()) {
+                        currentClientList.get(i).setEndTurn(false);
+                        currentClientList.get((i + 1) % currentClientList.size()).setMyTurn(true);
+                    }
+                    if (currentClientList.get(i).isWantACard()) {
+                        drawCards(currentClientList.get(i), 1);
+                        currentClientList.get(i).setWantACard(false, false);
+                    }
+                    if (currentClientList.get(i).getCurrentHand().getValue() > 21) {
+                        currentClientList.get(i).setEndTurn(true);
+                        currentClientList.get(i).setMyTurn(false);
+                        if (currentClientList.get(i) == currentClientList.get(currentClientList.size() - 1)) {
+                            hasAllPlayed = true;
+                        }
+                    } else if (currentClientList.get(i).isWantToStay()) {
+                        currentClientList.get(i).setEndTurn(true);
+                        currentClientList.get(i).setMyTurn(false);
+                        currentClientList.get(i).getCurrentHand().tryToUpValue();
+                        if (currentClientList.get(i) == currentClientList.get(currentClientList.size() - 1)) {
+                            hasAllPlayed = true;
+                        }
+                        currentClientList.get(i).setWantToStay(false, false);
+                        dealerHand.getCardSRList().get(1).setHide(false);
+                    }
+                    if (currentClientList.get(i).isEndTurn()) {
+                        currentClientList.get(i).setEndTurn(false);
+                        currentClientList.get((i + 1) % currentClientList.size()).setMyTurn(true);
+                    }
+                }
+            }
+
+            tbsr.setHandDealer(dealerHand);
+            tbsr.setGameInProgress(gameInProgress);
+
+            // Envoi de la table si elle a été modifiée (check des listes et dealer)
+            needToSend("sendTable");
+
+            Thread.sleep(1000);
+
+            synchronized (lock) {
+                sendTableLaunched = false;
+                lock.notify(); // Réveille le thread s'il est en attente
+            }
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * Détermine si le dealer devrait tirer une nouvelle carte selon les règles du Blackjack.
+     *
+     * @param hand La main du dealer.
+     * @return true si le dealer doit tirer une carte supplémentaire, sinon false.
+     */
+    public boolean shouldHit(HandSR hand) {
+        int handValue = hand.getValue();
+        boolean soft17 = hand.containsAce() && (handValue == 17); // Vérifie si c'est un soft 17 (Un as + une main valant 6)
+
+        return handValue < 17 || soft17;
+    }
+
+    /**
+     * Vérifie s'il y a des joueurs actifs sur la table.
+     *
+     * @return true s'il y a au moins un joueur actif, sinon false.
+     */
+    private boolean hasActivePlayer() {
+        int nbrJoueurActifs = 0;
+
+        for (Client client : clientList) {
+            if (client.hasBet()) {
+                nbrJoueurActifs++; // hasBet est toujours vrai pour un joueur dès lors qu'il a misé et que la partie n'est pas terminée
+            } else {
+                nbrJoueurActifs--;
+            }
+        }
+
+        return nbrJoueurActifs >= 0;
+    }
+
+    /**
+     * Envoie la table mise à jour aux clients connectés.
+     *
+     * @throws IOException En cas d'erreur d'entrée/sortie lors de l'écriture de la table vers les clients.
+     * @throws InterruptedException En cas d'interruption du thread pendant l'envoi de la table.
+     */
+    private synchronized void writeObject() throws IOException, InterruptedException {
+        for (ClientHandler clientHandler : clientHandlerList) {
+            writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
+            writerObject.writeObject(tbsr);
+            writerObject.flush();
+            logger.info("Table " + tbsr + " envoyée à " + clientHandler.getClient().getPseudo());
+        }
+        Thread.sleep(2000);
+    }
+
+    /**
+     * Met à jour un client spécifique sur la table.
+     *
+     * @param c Le client à mettre à jour.
+     * @throws InterruptedException En cas d'interruption du thread lors de la mise à jour du client.
+     */
+    public synchronized void updateClient(Client c) throws InterruptedException {
+
+        synchronized (lock) {
+            sendTableLaunched = true;
+        }
+
+        tbsr.updateClient(c);
+        clientList = tbsr.getClientList();
+
+        for(Client client : currentClientList){
+            client = clientList.get(clientList.indexOf(client));
+            currentClientList.set(currentClientList.indexOf(client),client);
+        }
+        Thread.sleep(2000);
+        sendTable();
+    }
+
+    /**
+     * Vérifie s'il est nécessaire d'envoyer une mise à jour de la table aux clients connectés.
+     *
+     * @param methodeAppelante La méthode qui appelle cette vérification.
+     * @throws IOException En cas d'erreur d'entrée/sortie lors de la vérification et de l'envoi de la table.
+     * @throws InterruptedException En cas d'interruption du thread pendant l'envoi de la table.
+     */
+    private synchronized void needToSend(String methodeAppelante) throws IOException, InterruptedException {
+
+        boolean needToSend = false;
+
+        if(currentClientList.size() == clientListSave.size()){
+            for (int i = 0; i < clientListSave.size(); i++) {
+                if (!currentClientList.get(i).hasSameProperty(clientListSave.get(i))) {
+                    needToSend = true;
+                }
+            }
+
+            if (!dealerHand.equals(dealerHandSave)) {
+                needToSend = true;
+            }
+        }
+
+        if(currentClientList.size() != clientListSave.size()) {
+            needToSend = true;
+        }
+
+        if(!gameInProgress) needToSend = true;
+
+        if (needToSend) {
+            logger.info("Méthode appelante : " + methodeAppelante);
+            logger.info("Ancienne liste : " + clientListSave + " \n" + dealerHandSave);
+            logger.info("Nouvelle liste : " + currentClientList + " \n" + dealerHand);
+
+            // On récupère les clients sans leurs références
+            clientListSave.clear();
+            for (Client client : currentClientList) {
+                clientListSave.add(client.clone());
+            }
+
+            // On récupère la main du dealer sans sa référence
+            dealerHandSave = dealerHand.clone();
+
+            writeObject();
+        }
+    }
+
+    private void setCardGame() {
+        for (int i = 0; i < 5; i++) { // 5 jeux de cartes
+            for (int j = 1; j < 5; j++) {
+                for (int k = 1; k < 14; k++) {
+                    cardSRList.add(new CardSR(j, k));
+                }
+            }
+        }
+    }
+
+    /**
+     * Tire une carte aléatoire du jeu de cartes disponibles.
+     *
+     * @return La carte tirée aléatoirement.
+     */
+    private CardSR getRandomCard() {
+        int indexRandom = (int) (Math.random() * (cardSRList.size()));
+        CardSR card = cardSRList.get(indexRandom);
+        cardSRList.remove(indexRandom);
+        logger.info("Carte tirée : " + card);
+        return card;
+    }
+
+    /**
+     * Distribue des cartes à un joueur.
+     *
+     * @param client       Le client qui reçoit les cartes.
+     * @param numberToDraw Le nombre de cartes à distribuer.
+     */
+    private void drawCards(Client client, int numberToDraw) {
+
+        for (int i = 0; i < numberToDraw; i++) {
+            CardSR cardSR = getRandomCard();
+            client.getCurrentHand().addCardToList(cardSR);
+        }
+    }
+
+    public static int getId() {
+        return id;
     }
 
     public void addClientHandler(ClientHandler ch) {
@@ -49,173 +402,7 @@ public class TableHandler implements Runnable {
     }
 
     @Override
-    public void run() {
-        while (true) { // en écoute des maj de la table du joueur
-            try {
-
-                int nbrGame = 0;
-                /// On instancie deux cartes pour chaque joueur
-                int cpt = 0;
-
-                for(Client client : clientList){
-                    if(client.hasBet() && (client.getCurrentHand() == null || client.getCurrentHand().getCardSRList().isEmpty())){
-                        cpt++;
-                    }
-                }
-
-                if(!gameInProgress && cpt == clientList.size() && cpt != 0){ // si égal au nombre de joueurs alors tout le monde a parié
-                    gameInProgress = true;
-                    logger.info("Les jeux sont faits");
-
-                    if(nbrGame%10 == 0)setCardGame(); // on mélange les cartes tous les 10 tours
-                    for(Client client : clientList){
-                        drawCards(client , 2);
-                    }
-
-                    currentClientList = clientList;
-                    currentClientList.get(0).setMyTurn(true);
-
-                    /// On instancie les deux premières cartes du dealer (face cachée)
-                    CardSR card = getRandomCard();
-                    card.setHide(false);
-                    cardDealerList.add(card);
-                    card = getRandomCard();
-                    card.setHide(true);
-                    cardDealerList.add(card);
-                }
-
-                for(int i = 0 ; i < currentClientList.size() ; i++){
-                    if(currentClientList.get(i).isWantACard()){
-                        drawCards(currentClientList.get(i), 1);
-                        currentClientList.get(i).setWantACard(false, false);
-                    }
-                    if(currentClientList.get(i).getValeur() > 21){
-                        currentClientList.get(i).setCurrentBet(0);
-                        currentClientList.get(i).setEndTurn(true);
-                        currentClientList.get(i).setMyTurn(false);
-                        currentClientList.get(i).setHasBet(false);
-                        currentClientList.get(i).setValeur(0);
-                    } else if (currentClientList.get(i).isWantToStay()) {
-                        currentClientList.get(i).setEndTurn(true);
-                        currentClientList.get(i).setMyTurn(false);
-                    }
-                    if(currentClientList.get(i).isEndTurn())currentClientList.get((i+1)%currentClientList.size()).setMyTurn(true);
-                }
-
-                if(!isGameInProgress() && gameInProgress){
-                    for(Client client : clientList){
-                        if(client.getCurrentHand() != null) client.getCurrentHand().clearCardList();
-                        client.setEndTurn(false);
-                        client.setMyTurn(false);
-                        client.setCurrentBet(0);
-                    }
-                    cardDealerList.clear();
-                    logger.info("Aucun joueur sur la partie actuel, arrêt de la partie.");
-                    gameInProgress = false;
-                }
-
-                tbsr.setCardSRDealerList(cardDealerList);
-                tbsr.setGameInProgress(gameInProgress);
-
-                // Envoi de la table si elle a été modifiée (check des listes)
-                if (areListNotEquals()) {
-                    logger.info("Modification détectée\n. Ancienne liste : " + clientListSave);
-                    logger.info("Nouvelle liste : " + clientList);
-
-                    clientListSave.clear();
-                    clientListSave.addAll(clientList);
-
-                    writeObject();
-
-                    logger.info("clientListSave mise à jour : " + clientListSave);
-                }
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
-    private boolean isGameInProgress(){
-        int nbrJoueurActifs = 0;
-
-        for(Client client : clientList){
-            if(client.hasBet()){
-                nbrJoueurActifs++; // hasBet est toujours vrai pour un joueur dès lors qu'il a misé et que la partie n'est pas terminée
-            }else{
-                nbrJoueurActifs--;
-            }
-        }
-
-        return nbrJoueurActifs >= 0;
-    }
-
-    private synchronized void writeObject() throws IOException {
-        for (ClientHandler clientHandler : clientHandlerList) {
-            writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
-            writerObject.writeObject(tbsr);
-            writerObject.flush();
-            logger.info("Table " + tbsr + " envoyée à " + clientHandler.getClient().getPseudo());
-        }
-    }
-
-    public void updateClient(Client c) {
-        //c.setBalance(c.getBalance()+10);
-        tbsr.updateClient(c);
-        clientList = tbsr.getClientList();
-    }
-
-    private boolean areListNotEquals() {
-
-        if((clientList.size() != clientListSave.size()))return true;
-
-        for(int i = 0 ; i < clientListSave.size() ; i++){
-            if(!clientList.get(i).hasSameProperty(clientListSave.get(i))){
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void setCardGame(){
-        for(int i = 0  ; i < 5 ; i++){ // 5 jeux de cartes
-            for(int j = 1 ; j < 5 ; j++){
-                for(int k = 1 ; k < 14 ; k++){
-                    cardSRList.add(new CardSR(j,k));
-                }
-            }
-        }
-    }
-
-    private CardSR getRandomCard(){
-        int indexRandom = (int)(Math.random()*(cardSRList.size()));
-        CardSR card = cardSRList.get(indexRandom);
-        cardSRList.remove(indexRandom);
-        logger.info("Carte tirée : " + card);
-        return card;
-    }
-
-    private void drawCards(Client client, int numberToDraw){
-        HandSR handSR = new HandSR();
-        int value = 0;
-        if(client.getValeur() != 0)value = client.getValeur();
-        if(client.getCurrentHand() != null)handSR = client.getCurrentHand();
-        for(int i = 0 ; i < numberToDraw ; i++){
-            CardSR cardSR = getRandomCard();
-            handSR.addCardToList(cardSR);
-            value += cardSR.getValue();
-        }
-        client.setCurrentHand(handSR);
-        client.setValeur(value);
-    }
-
-    public static int getId() {
-        return id;
-    }
-
-    @Override
     public String toString() {
-        return "TableHandler - id:" +id + "{" +
-                "tbsr=" + tbsr +
-                '}';
+        return "TableHandler - id:" + id + "{" + "tbsr=" + tbsr + '}';
     }
 }

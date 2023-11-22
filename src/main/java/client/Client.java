@@ -19,11 +19,10 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Client implements Serializable, Runnable {
-    public String getId() {
-        return id;
-    }
-
+/**
+ * Classe représentant un client du jeu de Blackjack.
+ */
+public class Client implements Serializable, Runnable, Cloneable {
     private static final long serialVersionUID = 1L;
 
     private final String id = UUID.randomUUID().toString();
@@ -41,14 +40,12 @@ public class Client implements Serializable, Runnable {
 
     private int balance = 0;
     private int currentBet = 0;
-
-    private int valeur = 0;
     private transient ObjectOutputStream writerObject;
     private transient Socket socket; // Ajoutez une variable membre pour le socket
 
     private transient Controller controller;
 
-    private HandSR currentHand;
+    private HandSR currentHand = new HandSR();
 
     private boolean hasBet = false;
 
@@ -60,6 +57,11 @@ public class Client implements Serializable, Runnable {
 
     private boolean wantToStay = false;
 
+    private int gain = -1;
+
+    /**
+     * Méthode pour démarrer l'exécution du client.
+     */
     public void run() {
         try {
 
@@ -73,6 +75,8 @@ public class Client implements Serializable, Runnable {
             Client client = Server.findInList(savedClientList, this);
             reaffectAllStatus(client);
 
+            Thread.sleep(2000);
+
             sendClient(); // premier envoi pour s'initialiser
 
             TableSR tbsr;
@@ -82,23 +86,20 @@ public class Client implements Serializable, Runnable {
             while (true) {
                 try {
                     logger.info("En attente d'une nouvelle table");
-                    try{
+                    try {
                         // Lecture de la table
                         tbsr = readTable();
-                        logger.info("Maj de la table " + tbsr.getTableHandlerId());
+                        logger.info("Maj de la table reçu " + tbsr);
 
                         // Mise à jour du client courant via la table reçue
                         reaffectAllStatus(tbsr.getClientModification(this));
 
                         // Mise à jour des composants graphiques
-                        refreshTable();
                         controller.testText(tbsr);
                         logger.info("Rafraichissement de la vue");
 
-                        // Envoi du client courant au serveur
-                        sendClient();
-                    }catch(Exception e){
-                        // ne rien faire -- skip la lecture
+                    } catch (Exception e) {
+                        System.exit(0);
                     }
 
                 } catch (Exception exc) {
@@ -112,10 +113,19 @@ public class Client implements Serializable, Runnable {
         }
     }
 
-    public void shutdown(){
+    /**
+     * Méthode pour arrêter le client et fermer la connexion.
+     */
+    public void shutdown() {
         System.exit(0);
     }
 
+    /**
+     * Constructeur de la classe Client.
+     * Initialise le client et établit une connexion avec le serveur.
+     *
+     * @param controller Le contrôleur de l'interface graphique associée au client.
+     */
     @SuppressWarnings("unchecked")
     public Client(Controller controller) {
 
@@ -139,7 +149,7 @@ public class Client implements Serializable, Runnable {
             socket = new Socket(addr, port);
             System.out.println("Socket = " + socket);
 
-            try{
+            try {
                 // Lecture de la liste des clients déjà connectés
                 ObjectInputStream readerObjectList = new ObjectInputStream(socket.getInputStream());
                 connectedClientList = (List<Client>) readerObjectList.readObject();
@@ -147,11 +157,11 @@ public class Client implements Serializable, Runnable {
                 // Lecture de la liste des clients sauvegardés au préalable
                 readerObjectList = new ObjectInputStream(socket.getInputStream());
                 savedClientList = (List<Client>) readerObjectList.readObject();
-            }catch(Exception e){
+            } catch (Exception e) {
                 // ne rien faire -- skip la lecture
             }
 
-            try{
+            try {
                 JTextField pseudoField;
                 JComboBox<String> existingPseudos;
 
@@ -172,7 +182,7 @@ public class Client implements Serializable, Runnable {
                 JLabel existingPseudoLabel = new JLabel("Pseudos existants:");
                 existingPseudos = new JComboBox<>();
 
-                for(Client client : savedClientList){
+                for (Client client : savedClientList) {
                     existingPseudos.addItem(client.getPseudo());
                 }
 
@@ -184,7 +194,7 @@ public class Client implements Serializable, Runnable {
 
                 validateButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        if(isAlreadyConnected(pseudoField.getText())){
+                        if (isAlreadyConnected(pseudoField.getText())) {
                             JOptionPane.showMessageDialog(null, "Pseudo déjà connecté", "Erreur", JOptionPane.ERROR_MESSAGE);
                         }
                         if (!pseudoField.getText().isEmpty() && !isAlreadyConnected(pseudoField.getText())) {
@@ -216,7 +226,7 @@ public class Client implements Serializable, Runnable {
                 });
 
                 frame.setVisible(true);
-            }catch(Exception e){
+            } catch (Exception e) {
                 logger.severe("Erreur sélection des pseudos : " + e.getMessage());
             }
 
@@ -226,33 +236,62 @@ public class Client implements Serializable, Runnable {
         }
     }
 
-    private boolean isAlreadyConnected(String pseudo){
-        for(Client client : connectedClientList){
-            if(client.getPseudo().equals(pseudo))return true;
+    private boolean isAlreadyConnected(String pseudo) {
+        for (Client client : connectedClientList) {
+            if (client.getPseudo().equals(pseudo)) return true;
         }
         return false;
     }
 
+    // Getters et Setters avec des commentaires Javadoc pour chaque méthode
+
+    @Override
+    public Client clone() {
+        try {
+            return (Client) super.clone();
+        } catch (CloneNotSupportedException e) {
+            // Gestion de l'exception si le clonage n'est pas supporté
+            return null;
+        }
+    }
+
+    /**
+     * Réaffecte tous les états du client avec ceux du client modifié.
+     *
+     * @param clientModified Le client contenant les états modifiés à réaffecter.
+     */
     private void reaffectAllStatus(Client clientModified) {
         logger.info("avant " + this);
         logger.info("après " + clientModified);
         pseudo = clientModified.getPseudo();
         balance = clientModified.getBalance();
+        gain = clientModified.getGain();
         currentHand = clientModified.getCurrentHand();
         hasBet = clientModified.hasBet();
         myTurn = clientModified.isMyTurn();
         endTurn = clientModified.isEndTurn();
-        valeur = clientModified.getValeur();
         wantACard = clientModified.isWantACard();
         wantToStay = clientModified.isWantToStay();
     }
 
+    /**
+     * Envoie les informations du client à la table.
+     *
+     * @throws IOException En cas d'erreur lors de l'envoi des informations.
+     */
     private void sendClient() throws IOException {
-        logger.info("Envoi du client à la table");
+        logger.info("Envoi du client à la table : " + this);
         writerObject.writeObject(this);
         writerObject.reset();
     }
 
+    /**
+     * Lit la table envoyée par le serveur.
+     *
+     * @return La table reçue du serveur.
+     * @throws IOException            En cas d'erreur lors de la lecture de la table.
+     * @throws ClassNotFoundException Si la classe de l'objet reçu n'est pas trouvée.
+     */
     private TableSR readTable() throws IOException, ClassNotFoundException {
         ObjectInputStream readerObject = new ObjectInputStream(socket.getInputStream());
         return (TableSR) readerObject.readObject();
@@ -262,16 +301,18 @@ public class Client implements Serializable, Runnable {
         return balance;
     }
 
-    public void setBalance(int balance) throws IOException {
+    public void setBalance(int balance, boolean toSend) throws IOException {
         this.balance = balance;
-        sendClient();
+        if (toSend) sendClient();
     }
 
     public void setCurrentBet(int currentBet) {
         this.currentBet = currentBet;
     }
 
-    public int getCurrentBet() { return currentBet; }
+    public int getCurrentBet() {
+        return currentBet;
+    }
 
     public void setCurrentHand(HandSR currentHand) {
         this.currentHand = currentHand;
@@ -288,11 +329,7 @@ public class Client implements Serializable, Runnable {
     public void setHasBet(boolean hasBet, int currentBet, boolean toSend) throws IOException {
         this.setCurrentBet(currentBet);
         this.hasBet = hasBet;
-        if(toSend)sendClient();
-    }
-
-    public void setHasBet(boolean hasBet) {
-        this.hasBet = hasBet;
+        if (toSend) sendClient();
     }
 
     public boolean isMyTurn() {
@@ -317,15 +354,7 @@ public class Client implements Serializable, Runnable {
 
     public void setWantACard(boolean wantACard, boolean toSend) throws IOException {
         this.wantACard = wantACard;
-        if(toSend)sendClient();
-    }
-
-    public int getValeur() {
-        return valeur;
-    }
-
-    public void setValeur(int valeur) {
-        this.valeur = valeur;
+        if (toSend) sendClient();
     }
 
     public boolean isWantToStay() {
@@ -334,28 +363,20 @@ public class Client implements Serializable, Runnable {
 
     public void setWantToStay(boolean wantToStay, boolean toSend) throws IOException {
         this.wantToStay = wantToStay;
-        if(toSend)sendClient();
+        if (toSend) sendClient();
+    }
+
+    public int getGain() {
+        return gain;
+    }
+
+    public void setGain(int gain) {
+        this.gain = gain;
     }
 
     @Override
     public String toString() {
-        return "Client{" +
-                "id='" + id + '\'' +
-                ", pseudo='" + pseudo + '\'' +
-                ", balance=" + balance +
-                ", currentBet=" + currentBet +
-                ", currentHand=" + currentHand +
-                ", valeur=" + valeur +
-                ", hasBet=" + hasBet +
-                ", myTurn=" + myTurn +
-                ", endTurn=" + endTurn +
-                ", wantACard=" + wantACard +
-                ", wantToStay=" + wantToStay +
-                '}';
-    }
-
-    private static void refreshTable() {
-
+        return "Client{" + "id='" + id + '\'' + ", pseudo='" + pseudo + '\'' + ", balance=" + balance + ", currentBet=" + currentBet + ", currentHand=" + currentHand + ", hasBet=" + hasBet + ", gain=" + gain + ", myTurn=" + myTurn + ", endTurn=" + endTurn + ", wantACard=" + wantACard + ", wantToStay=" + wantToStay + '}';
     }
 
     @Override
@@ -366,12 +387,19 @@ public class Client implements Serializable, Runnable {
         return id.equals(client.id);
     }
 
+    /**
+     * Vérifie si le client possède les mêmes propriétés qu'un autre client.
+     *
+     * @param c Le client avec lequel comparer les propriétés.
+     * @return true si les propriétés sont identiques, sinon false.
+     */
     public boolean hasSameProperty(Client c) {
-        return (balance == c.balance && hasBet == c.hasBet && currentHand.equals(c.currentHand) && wantACard == c.wantACard && endTurn == c.isEndTurn() && wantToStay == c.wantToStay);
+        return (balance == c.balance && hasBet == c.hasBet && currentHand.equals(c.currentHand) && wantACard == c.wantACard && endTurn == c.endTurn && wantToStay == c.wantToStay);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(pseudo);
     }
+
 }
