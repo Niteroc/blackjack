@@ -261,8 +261,6 @@ public class Client implements Serializable, Runnable, Cloneable {
      * @param clientModified Le client contenant les états modifiés à réaffecter.
      */
     private void reaffectAllStatus(Client clientModified) {
-        logger.info("avant " + this);
-        logger.info("après " + clientModified);
         pseudo = clientModified.getPseudo();
         balance = clientModified.getBalance();
         gain = clientModified.getGain();
@@ -332,6 +330,10 @@ public class Client implements Serializable, Runnable, Cloneable {
         if (toSend) sendClient();
     }
 
+    public boolean canBet(int bet){
+        return getBalance() > bet;
+    }
+
     public boolean isMyTurn() {
         return myTurn;
     }
@@ -394,7 +396,7 @@ public class Client implements Serializable, Runnable, Cloneable {
      * @return true si les propriétés sont identiques, sinon false.
      */
     public boolean hasSameProperty(Client c) {
-        return (balance == c.balance && hasBet == c.hasBet && currentHand.equals(c.currentHand) && wantACard == c.wantACard && endTurn == c.endTurn && wantToStay == c.wantToStay);
+        return (balance == c.balance && hasBet == c.hasBet && currentHand.equals(c.currentHand) && wantACard == c.wantACard && endTurn == c.endTurn && wantToStay == c.wantToStay && myTurn == c.myTurn);
     }
 
     @Override

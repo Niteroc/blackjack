@@ -6,7 +6,6 @@ import table.HandSR;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -24,9 +23,8 @@ public class Server {
     private static final int PORT = 12345;
     private static final int MAX_CLIENTS = 5;
     private static final Logger logger = Logger.getLogger(Server.class.getName());
-    private static ThreadPoolExecutor tpe;
 
-    private static List<Client> listClientConnected = new ArrayList<>();
+    private static final List<Client> listClientConnected = new ArrayList<>();
 
     /**
      * Méthode pour gérer la connexion d'un client.
@@ -64,9 +62,7 @@ public class Server {
         try (ObjectInputStream reader = new ObjectInputStream(new FileInputStream(clientsFile))) {
             Object object = reader.readObject();
             if (object instanceof List) {
-                List<Client> loadedClients = (List<Client>) object;
-                logger.info("Liste de clients chargée depuis le fichier.");
-                return loadedClients;
+                return (List<Client>) object;
             } else {
                 logger.warning("Le fichier ne contient pas une liste de clients valide.");
             }
@@ -93,10 +89,9 @@ public class Server {
      * Initialise le serveur et gère les connexions des clients.
      */
     public Server() {
-        // ... Contenu du constructeur
-        ServerSocket serverSocket = null;
 
-        tpe = new ThreadPoolExecutor(MAX_CLIENTS * 5, MAX_CLIENTS * 5, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+        ServerSocket serverSocket = null;
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(MAX_CLIENTS * 5, MAX_CLIENTS * 5, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
 
         try {
             serverSocket = new ServerSocket(PORT);
@@ -189,10 +184,11 @@ public class Server {
      * @param clientToFind Le client à rechercher dans la liste.
      * @return Le client trouvé dans la liste ou le client à trouver s'il n'est pas présent.
      */
-    public static Client findInList(List<Client> clientList, Client clientToFind) {
+    public static Client findInList(List<Client> clientList, Client clientToFind) throws IOException {
         for (Client client : clientList) {
             if (client.getPseudo().equals(clientToFind.getPseudo())) return client;
         }
+        clientToFind.setBalance(10000, false);
         return clientToFind;
     }
 }

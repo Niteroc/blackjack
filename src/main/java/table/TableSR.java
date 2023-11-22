@@ -113,7 +113,6 @@ public class TableSR implements Serializable {
      * @param c Le client à mettre à jour ou à ajouter dans la table.
      */
     public void updateClient(Client c) {
-        logger.info(c.getPseudo() + " inséré/maj dans la table " + TableHandler.getId() + " // déjà existant : " + clientList.contains(c));
         if (!clientList.contains(c)) {
             clientList.add(c);
         } else {

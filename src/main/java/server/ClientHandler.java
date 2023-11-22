@@ -69,7 +69,7 @@ public class ClientHandler implements Runnable {
         logger.info(client + " a rejoint la table " + TableHandler.getId());
 
         tableHandler.addClientHandler(this);
-        tableHandler.updateClient(client);
+        tableHandler.updateClient(client, true);
 
     }
 
@@ -82,7 +82,7 @@ public class ClientHandler implements Runnable {
             while (true) { // en écoute des maj du joueur
                 client = (Client) readerObject.readObject();
                 System.out.println("Mise à jour reçue du client  : " + client);
-                tableHandler.updateClient(client);
+                tableHandler.updateClient(client, false);
             }
 
         } catch (Exception e) {

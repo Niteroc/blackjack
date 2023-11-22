@@ -17,19 +17,17 @@ public class TableHandler implements Runnable {
 
     private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
-    private static int id = 1;
+    private static final int id = 1;
 
-    private ObjectOutputStream writerObject;
+    private final List<ClientHandler> clientHandlerList = new ArrayList<>();
 
-    private List<ClientHandler> clientHandlerList = new ArrayList<>();
-
-    private TableSR tbsr = new TableSR();
+    private final TableSR tbsr = new TableSR();
 
     private List<Client> clientList = new ArrayList<>();
 
-    private List<Client> clientListSave = new ArrayList<>();
+    private final List<Client> clientListSave = new ArrayList<>();
 
-    private List<CardSR> cardSRList = new ArrayList<>();
+    private final List<CardSR> cardSRList = new ArrayList<>();
 
     private boolean gameInProgress = false;
 
@@ -37,13 +35,15 @@ public class TableHandler implements Runnable {
 
     private boolean hasDealerPlayed = false;
 
-    private HandSR dealerHand = new HandSR();
+    private boolean hasDealerShowTheSecondCard = false;
+
+    private final HandSR dealerHand = new HandSR();
 
     private HandSR dealerHandSave = new HandSR();
 
     private int nbrGame = 0;
 
-    private List<Client> currentClientList = new ArrayList<>(); // cette liste contient que les joueurs qui jouent actuellement
+    private final List<Client> currentClientList = new ArrayList<>(); // cette liste contient que les joueurs qui jouent actuellement
 
     private final Object lock = new Object();
     private boolean sendTableLaunched = false;
@@ -71,11 +71,9 @@ public class TableHandler implements Runnable {
                 }
 
                 if (gameInProgress) {
-
                     // Phase où la partie est encore en cours mais les joueurs ont tous finis
                     if (!hasActivePlayer()) {
                         for (Client client : currentClientList) {
-
                             // gain
                             if (client.getCurrentHand().getValue() <= 21) {
                                 if (client.getCurrentHand().getValue() > dealerHand.getValue()) {
@@ -109,6 +107,7 @@ public class TableHandler implements Runnable {
                         gameInProgress = false;
                         hasAllPlayed = false;
                         hasDealerPlayed = false;
+                        hasDealerShowTheSecondCard = false;
                         nbrGame++;
                         currentClientList.clear();
                     }
@@ -117,20 +116,25 @@ public class TableHandler implements Runnable {
                         if (hasDealerPlayed) {
                             client.setHasBet(false, client.getCurrentBet(), false);
                         }
-                        if (hasAllPlayed) {
-                            dealerHand.getCardSRList().get(1).setHide(false);
-                            while (shouldHit(dealerHand)) {
-                                dealerHand.addCardToList(getRandomCard());
-                                dealerHand.tryToUpValue();
-                            }
-                            hasDealerPlayed = true;
+                    }
+
+                    if (hasDealerShowTheSecondCard) {
+                        while (shouldHit(dealerHand)) {
+                            dealerHand.addCardToList(getRandomCard());
+                            dealerHand.tryToUpValue();
                         }
+                        hasDealerPlayed = true;
+                    }
+
+                    if (hasAllPlayed) {
+                        dealerHand.getCardSRList().get(1).setHide(false);
+                        hasDealerShowTheSecondCard = true;
                     }
 
                     tbsr.setHandDealer(dealerHand);
                     tbsr.setGameInProgress(gameInProgress);
 
-                    needToSend("run");
+                    needToSend(false);
 
                 }
 
@@ -143,7 +147,7 @@ public class TableHandler implements Runnable {
     /**
      * Envoie la table aux clients connectés.
      */
-    public void sendTable() {
+    public void sendTable(boolean force) {
         try {
 
             int cpt = 0;
@@ -198,16 +202,17 @@ public class TableHandler implements Runnable {
                         currentClientList.get(i).setMyTurn(false);
                         if (currentClientList.get(i) == currentClientList.get(currentClientList.size() - 1)) {
                             hasAllPlayed = true;
+                            break;
                         }
                     } else if (currentClientList.get(i).isWantToStay()) {
                         currentClientList.get(i).setEndTurn(true);
                         currentClientList.get(i).setMyTurn(false);
                         currentClientList.get(i).getCurrentHand().tryToUpValue();
+                        currentClientList.get(i).setWantToStay(false, false);
                         if (currentClientList.get(i) == currentClientList.get(currentClientList.size() - 1)) {
                             hasAllPlayed = true;
+                            break;
                         }
-                        currentClientList.get(i).setWantToStay(false, false);
-                        dealerHand.getCardSRList().get(1).setHide(false);
                     }
                     if (currentClientList.get(i).isEndTurn()) {
                         currentClientList.get(i).setEndTurn(false);
@@ -220,16 +225,18 @@ public class TableHandler implements Runnable {
             tbsr.setGameInProgress(gameInProgress);
 
             // Envoi de la table si elle a été modifiée (check des listes et dealer)
-            needToSend("sendTable");
+            needToSend(force);
 
             Thread.sleep(1000);
 
+        } catch (Exception ignored) {
+
+        }
+        finally {
             synchronized (lock) {
                 sendTableLaunched = false;
                 lock.notify(); // Réveille le thread s'il est en attente
             }
-
-        } catch (Exception ignored) {
         }
     }
 
@@ -254,7 +261,7 @@ public class TableHandler implements Runnable {
     private boolean hasActivePlayer() {
         int nbrJoueurActifs = 0;
 
-        for (Client client : clientList) {
+        for (Client client : currentClientList) {
             if (client.hasBet()) {
                 nbrJoueurActifs++; // hasBet est toujours vrai pour un joueur dès lors qu'il a misé et que la partie n'est pas terminée
             } else {
@@ -262,7 +269,7 @@ public class TableHandler implements Runnable {
             }
         }
 
-        return nbrJoueurActifs >= 0;
+        return nbrJoueurActifs > 0;
     }
 
     /**
@@ -273,7 +280,7 @@ public class TableHandler implements Runnable {
      */
     private synchronized void writeObject() throws IOException, InterruptedException {
         for (ClientHandler clientHandler : clientHandlerList) {
-            writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
+            ObjectOutputStream writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
             writerObject.writeObject(tbsr);
             writerObject.flush();
             logger.info("Table " + tbsr + " envoyée à " + clientHandler.getClient().getPseudo());
@@ -287,7 +294,7 @@ public class TableHandler implements Runnable {
      * @param c Le client à mettre à jour.
      * @throws InterruptedException En cas d'interruption du thread lors de la mise à jour du client.
      */
-    public synchronized void updateClient(Client c) throws InterruptedException {
+    public synchronized void updateClient(Client c, boolean firstConnection) throws InterruptedException {
 
         synchronized (lock) {
             sendTableLaunched = true;
@@ -301,17 +308,16 @@ public class TableHandler implements Runnable {
             currentClientList.set(currentClientList.indexOf(client),client);
         }
         Thread.sleep(2000);
-        sendTable();
+        sendTable(firstConnection);
     }
 
     /**
      * Vérifie s'il est nécessaire d'envoyer une mise à jour de la table aux clients connectés.
      *
-     * @param methodeAppelante La méthode qui appelle cette vérification.
      * @throws IOException En cas d'erreur d'entrée/sortie lors de la vérification et de l'envoi de la table.
      * @throws InterruptedException En cas d'interruption du thread pendant l'envoi de la table.
      */
-    private synchronized void needToSend(String methodeAppelante) throws IOException, InterruptedException {
+    private synchronized void needToSend(boolean force) throws IOException, InterruptedException {
 
         boolean needToSend = false;
 
@@ -319,6 +325,7 @@ public class TableHandler implements Runnable {
             for (int i = 0; i < clientListSave.size(); i++) {
                 if (!currentClientList.get(i).hasSameProperty(clientListSave.get(i))) {
                     needToSend = true;
+                    break;
                 }
             }
 
@@ -333,11 +340,7 @@ public class TableHandler implements Runnable {
 
         if(!gameInProgress) needToSend = true;
 
-        if (needToSend) {
-            logger.info("Méthode appelante : " + methodeAppelante);
-            logger.info("Ancienne liste : " + clientListSave + " \n" + dealerHandSave);
-            logger.info("Nouvelle liste : " + currentClientList + " \n" + dealerHand);
-
+        if (needToSend || force) {
             // On récupère les clients sans leurs références
             clientListSave.clear();
             for (Client client : currentClientList) {

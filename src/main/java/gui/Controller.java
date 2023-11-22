@@ -106,6 +106,7 @@ public class Controller {
         textList.add(playerNameRight);
 
         textStatus.setStyle("-fx-control-inner-background: green;");
+        dealButton.setDisable(true);
 
         imageViews = new ImageView[4][6];
         imageViews[0][0] = card1left;
@@ -147,24 +148,23 @@ public class Controller {
      */
     public void testText(TableSR tbsr) {
         if (tbsr.isGameInProgress()) {
-            dealButton.setDisable(true);
             textStatus.setStyle("-fx-control-inner-background: red;");
             textStatus.setText("Partie en cours");
         } else {
-            dealButton.setDisable(false);
             textStatus.setStyle("-fx-control-inner-background: green;");
             textStatus.setText("En attente des mises");
         }
+
         clearText();
         clearImage();
         textPlayerCount.setText("Joueurs connectés : " + tbsr.getClientList().size() + "/3");
 
         hitButton.setDisable(!currentClient.isMyTurn());
         standButton.setDisable(!currentClient.isMyTurn());
+        dealButton.setDisable(currentClient.hasBet());
 
         for (int i = 0; i < tbsr.getClientList().size(); i++) {
             textList.get(i).setUnderline(tbsr.getClientList().get(i).isMyTurn());
-            logger.info("tour : " + tbsr.getClientList().get(i).isMyTurn() + " de " + tbsr.getClientList().get(i).getPseudo());
             textList.get(i).setText(tbsr.getClientList().get(i).getPseudo() + " | " + tbsr.getClientList().get(i).getCurrentBet() + "€");
             currentBalance.setText("Banque : " + currentClient.getBalance() + "€");
             if (tbsr.getClientList().get(i).getCurrentHand() != null) {
@@ -189,11 +189,13 @@ public class Controller {
     @FXML
     private void hitACard() throws IOException {
         currentClient.setWantACard(true, true);
+        blockAction();
     }
 
     @FXML
     private void stand() throws IOException {
         currentClient.setWantToStay(true, true);
+        blockAction();
     }
 
     private void clearImage() {
@@ -271,12 +273,18 @@ public class Controller {
 
         try {
             currentClient.setHasBet(true, bet, true);
-            dealButton.setDisable(true);
-            currentBet.setText("Mise : " + bet + "€");
+            blockAction();
             bet = 0;
+            currentBet.setText("Mise : " + bet + "€");
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
 
+    }
+
+    public void blockAction() {
+        dealButton.setDisable(true);
+        standButton.setDisable(true);
+        hitButton.setDisable(true);
     }
 }
