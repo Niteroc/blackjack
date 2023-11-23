@@ -78,7 +78,7 @@ public class TableHandler implements Runnable {
                         for (Client client : currentClientList) {
                             // gain
                             if (client.getCurrentHand().getValue() <= 21) {
-                                if (client.getCurrentHand().getValue() > dealerHand.getValue()) {
+                                if (client.getCurrentHand().getValue() > dealerHand.getValue() || dealerHand.getValue() > 21) {
                                     if (client.getCurrentHand().isABlackJack()) {
                                         client.setGain((int) (client.getCurrentBet() * 2.5));
                                     } else {

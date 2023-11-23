@@ -71,6 +71,7 @@ public class Controller {
 
     private int bet = 0;
     private int bank;
+    private boolean canDoubleDown;
     @FXML
     Text bankrupt;
 
@@ -91,6 +92,7 @@ public class Controller {
     Button standButton;
     @FXML
     Button doubleDown;
+
 
     List<Text> textList = new ArrayList<>();
 
@@ -166,7 +168,12 @@ public class Controller {
 
         hitButton.setDisable(!currentClient.isMyTurn());
         standButton.setDisable(!currentClient.isMyTurn());
-        doubleDown.setDisable(!currentClient.isMyTurn());
+        if(currentClient.getCurrentHand().getCardSRList().size()==2){
+            doubleDown.setDisable(false);
+        }else{
+            doubleDown.setDisable(true);
+        }
+        logger.info("nbr carte : "+currentClient.getCurrentHand().getCardSRList().size()+"-- canDoubleDown : "+canDoubleDown);
         dealButton.setDisable(currentClient.hasBet());
 
         for (int i = 0; i < tbsr.getClientList().size(); i++) {
@@ -196,12 +203,16 @@ public class Controller {
     @FXML
     private void hitACard() throws IOException {
         currentClient.setWantACard(true, true);
+        doubleDown.setDisable(true);
+        canDoubleDown = false;
         blockAction();
     }
 
     @FXML
     private void stand() throws IOException {
         currentClient.setWantToStay(true, true);
+        doubleDown.setDisable(true);
+        canDoubleDown = false;
         blockAction();
     }
 
@@ -211,6 +222,7 @@ public class Controller {
                 imageView.setImage(null);
             }
         }
+        canDoubleDown = true;
     }
 
     private void clearText() {
@@ -340,6 +352,8 @@ public class Controller {
             currentClient.setCurrentBet(currentClient.getCurrentBet()*2);
             currentClient.setWantACard(true,false);
             currentClient.setWantToStay(true,true);
+            doubleDown.setDisable(true);
+            canDoubleDown = false;
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
