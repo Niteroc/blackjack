@@ -56,6 +56,7 @@ public class ClientHandler implements Runnable {
         this.tableHandler = tableHandler;
         this.server = server;
 
+        // Création des flux pour les objets Client et les String
         readerObject = new ObjectInputStream(clientSocket.getInputStream());
 
         try {
@@ -78,11 +79,23 @@ public class ClientHandler implements Runnable {
      */
     @Override
     public void run() {
+        logger.info("Démarrage du gestionnaire du client : " + client.getPseudo());
+
         try {
             while (true) { // en écoute des maj du joueur
-                client = (Client) readerObject.readObject();
-                System.out.println("Mise à jour reçue du client  : " + client);
-                tableHandler.updateClient(client, false);
+                Object object = readerObject.readObject();
+
+                if(object instanceof Client) {
+                    client = (Client) object;
+                    logger.info("Mise à jour reçue du client  : " + client);
+                    tableHandler.updateClient(client, false);
+                }
+
+                if(object instanceof String) {
+                    String message = (String) object;
+                    logger.info("Message reçu de client  : " + message);
+                    tableHandler.updateChat(message);
+                }
             }
 
         } catch (Exception e) {
@@ -93,7 +106,7 @@ public class ClientHandler implements Runnable {
                 tableHandler.removeClientHandler(this);
                 logger.info("Client " + client.getPseudo() + " déconnecté.");
                 server.saveClient(client);
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException e) {
                 logger.log(Level.SEVERE, "Erreur lors de la déconnexion du client ", e);
             }
         }

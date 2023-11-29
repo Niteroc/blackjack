@@ -11,6 +11,8 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -40,7 +42,11 @@ public class Client implements Serializable, Runnable, Cloneable {
 
     private int balance;
     private int currentBet = 0;
+
+    private transient final Object lock = new Object();
+    private transient boolean isSending = false;
     private transient ObjectOutputStream writerObject;
+
     private transient Socket socket; // Ajoutez une variable membre pour le socket
 
     private transient Controller controller;
@@ -62,6 +68,7 @@ public class Client implements Serializable, Runnable, Cloneable {
     /**
      * Méthode pour démarrer l'exécution du client.
      */
+    @Override
     public void run() {
         try {
 
@@ -75,8 +82,6 @@ public class Client implements Serializable, Runnable, Cloneable {
             Client client = Server.findInList(savedClientList, this);
             reaffectAllStatus(client);
 
-            Thread.sleep(2000);
-
             sendClient(); // premier envoi pour s'initialiser
 
             TableSR tbsr;
@@ -85,10 +90,12 @@ public class Client implements Serializable, Runnable, Cloneable {
 
             while (true) {
                 try {
-                    logger.info("En attente d'une nouvelle table");
-                    try {
-                        // Lecture de la table
-                        tbsr = readTable();
+                    // Lecture de la table
+                    ObjectInputStream readerObject = new ObjectInputStream(socket.getInputStream());
+                    Object object = readerObject.readObject();
+
+                    if(object instanceof TableSR){
+                        tbsr = (TableSR) object;
                         logger.info("Maj de la table reçu " + tbsr);
 
                         // Mise à jour du client courant via la table reçue
@@ -97,13 +104,19 @@ public class Client implements Serializable, Runnable, Cloneable {
                         // Mise à jour des composants graphiques
                         controller.testText(tbsr);
                         logger.info("Rafraichissement de la vue");
-
-                    } catch (Exception e) {
-                        System.exit(0);
                     }
 
-                } catch (Exception exc) {
-                    logger.log(Level.SEVERE, "erreur", exc);
+                    if(object instanceof String){
+                        String message = (String) object;
+                        logger.info("Maj du chat reçu : " + message);
+
+                        // Mise à jour des composants graphiques
+                        controller.setChat(message);
+                        logger.info("Rafraichissement de la vue");
+                    }
+
+                } catch (Exception e) {
+                    System.exit(0);
                 }
             }
 
@@ -278,28 +291,49 @@ public class Client implements Serializable, Runnable, Cloneable {
      * @throws IOException En cas d'erreur lors de l'envoi des informations.
      */
     private void sendClient() throws IOException {
-        logger.info("Envoi du client à la table : " + this);
-        writerObject.writeObject(this);
-        writerObject.reset();
+        synchronized (lock) {
+            if (!isSending) {
+                isSending = true;
+                try {
+                    logger.info("Envoi du client à la table : " + this);
+                    writerObject.writeObject(this);
+                    writerObject.reset();
+                } finally {
+                    isSending = false;
+                }
+            }
+        }
     }
 
     /**
-     * Lit la table envoyée par le serveur.
-     *
-     * @return La table reçue du serveur.
-     * @throws IOException            En cas d'erreur lors de la lecture de la table.
-     * @throws ClassNotFoundException Si la classe de l'objet reçu n'est pas trouvée.
+     * Envoie le message du chat à la table.
      */
-    private TableSR readTable() throws IOException, ClassNotFoundException {
-        ObjectInputStream readerObject = new ObjectInputStream(socket.getInputStream());
-        return (TableSR) readerObject.readObject();
+    public void sendMessage(String message) throws IOException {
+        LocalTime currentTime = LocalTime.now();
+
+        // Formatage de l'heure actuelle au format HH:mm
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        String formattedTime = currentTime.format(formatter);
+
+        synchronized (lock) {
+            if (!isSending) {
+                isSending = true;
+                try {
+                    logger.info("Envoi du message : " + message);
+                    writerObject.writeObject("[" + formattedTime + "] " + pseudo + ": " + message);
+                    writerObject.reset();
+                } finally {
+                    isSending = false;
+                }
+            }
+        }
     }
 
     public int getBalance() {
         return balance;
     }
 
-    public void setBalance(int balance, boolean toSend) throws IOException {
+    public void setBalance(int balance, boolean toSend) throws IOException, InterruptedException {
         this.balance = balance;
         if (toSend) sendClient();
     }
@@ -330,9 +364,8 @@ public class Client implements Serializable, Runnable, Cloneable {
         if (toSend) sendClient();
     }
 
-    public boolean canBet(int bet){
-        logger.info("--"+bet+"--"+this.getBalance());
-        return (this.getBalance() > bet);
+    public boolean canBet(int bet) {
+        return (this.getBalance() >= bet);
     }
 
     public boolean isMyTurn() {
@@ -376,8 +409,6 @@ public class Client implements Serializable, Runnable, Cloneable {
     public void setGain(int gain) {
         this.gain = gain;
     }
-
-    public boolean canBet(int bet, int bank) { return(bet <= bank); }
 
     @Override
     public String toString() {

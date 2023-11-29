@@ -13,8 +13,6 @@ import java.util.logging.Logger;
  */
 public class TableSR implements Serializable {
 
-    private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
-
     private static final long serialVersionUID = 1L;
 
     private boolean isGameInProgress = false;
@@ -75,7 +73,9 @@ public class TableSR implements Serializable {
         this.isGameFinished = isGameFinished;
     }
 
-    public boolean isGameFinished() { return isGameFinished; }
+    public boolean isGameFinished() {
+        return isGameFinished;
+    }
 
     /**
      * Renvoie la main du croupier.
@@ -109,7 +109,6 @@ public class TableSR implements Serializable {
         }
 
         stringBuilder.append("\t").append(handDealer).append('\n');
-
         stringBuilder.append("}");
 
         return stringBuilder.toString();

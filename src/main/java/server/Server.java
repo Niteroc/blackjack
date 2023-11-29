@@ -21,10 +21,10 @@ import java.util.logging.Logger;
  */
 public class Server {
     private static final int PORT = 12345;
-    private static final int MAX_CLIENTS = 5;
     private static final Logger logger = Logger.getLogger(Server.class.getName());
 
     private static final List<Client> listClientConnected = new ArrayList<>();
+    private static final int MAX_CLIENTS = 3;
 
     /**
      * Méthode pour gérer la connexion d'un client.
@@ -91,14 +91,15 @@ public class Server {
     public Server() {
 
         ServerSocket serverSocket = null;
-        ThreadPoolExecutor tpe = new ThreadPoolExecutor(MAX_CLIENTS * 5, MAX_CLIENTS * 5, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(2 * MAX_CLIENTS + 1, 2 * MAX_CLIENTS + 1, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
 
         try {
             serverSocket = new ServerSocket(PORT);
             logger.info("Serveur en attente de connexions sur le port " + PORT);
             TableHandler tableHandler = new TableHandler();
-            logger.info("La table " + TableHandler.getId() + " a été créée");
             tpe.execute(tableHandler);
+
+            logThreadPoolInfo(tpe);
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -114,6 +115,9 @@ public class Server {
                     try {
                         ClientHandler clientHandler = new ClientHandler(clientSocket, tableHandler, this);
                         tpe.execute(clientHandler);
+
+                        logThreadPoolInfo(tpe);
+
                     } catch (Exception e) {
                         logger.info("Fermeture de la connexion");
                     }
@@ -140,6 +144,15 @@ public class Server {
         logger.info("Clients connectés au serveur : " + listClientConnected.toString());
     }
 
+    public static void logThreadPoolInfo(ThreadPoolExecutor tpe) {
+        int taillePoolMax = tpe.getMaximumPoolSize();
+        int tachesEnAttente = (int) (tpe.getTaskCount() - tpe.getCompletedTaskCount());
+        int threadsDisponibles = taillePoolMax - tachesEnAttente;
+
+        String statut = String.format("Thread Pool Size Max : %d, Tâches en cours : %d, Threads Disponibles : %d", taillePoolMax, tachesEnAttente, threadsDisponibles);
+        logger.info("Statut du ThreadPoolExecutor : " + statut);
+    }
+
     /**
      * Méthode pour enregistrer un client dans un fichier sérialisé.
      * Réinitialise les informations du client avant l'enregistrement.
@@ -147,7 +160,7 @@ public class Server {
      * @param client Le client à enregistrer dans le fichier.
      * @throws IOException En cas d'erreur d'entrée/sortie lors de l'enregistrement.
      */
-    public void saveClient(Client client) throws IOException {
+    public void saveClient(Client client) throws IOException, InterruptedException {
 
         List<Client> clients = loadClientsList();
 
@@ -184,11 +197,11 @@ public class Server {
      * @param clientToFind Le client à rechercher dans la liste.
      * @return Le client trouvé dans la liste ou le client à trouver s'il n'est pas présent.
      */
-    public static Client findInList(List<Client> clientList, Client clientToFind) throws IOException {
+    public static Client findInList(List<Client> clientList, Client clientToFind) throws IOException, InterruptedException {
         for (Client client : clientList) {
             if (client.getPseudo().equals(clientToFind.getPseudo())) return client;
         }
-        clientToFind.setBalance(10000,false);
+        clientToFind.setBalance(10000, false);
         return clientToFind;
     }
 }

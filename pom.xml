@@ -6,8 +6,8 @@
 
     <groupId>fr.student.blackjack</groupId>
     <artifactId>blackjack-project</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <name>demo</name>
+    <version>1.0</version>
+    <name>BlackJack</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

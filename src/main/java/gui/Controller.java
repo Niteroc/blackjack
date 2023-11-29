@@ -9,27 +9,21 @@ import javafx.scene.text.Text;
 import table.TableSR;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.logging.Logger;
+import java.util.*;
 
 /**
  * Contrôleur pour l'interface graphique de l'application.
  */
 public class Controller {
 
-    private static final Logger logger = Logger.getLogger(JavaFXGUI.class.getName());
-
     @FXML
     Text playerNameLeft;
-
     @FXML
     Text playerNameMiddle;
-
     @FXML
     Text playerNameRight;
-
+    @FXML
+    TextArea chatTextArea;
     @FXML
     ImageView card1left;
     @FXML
@@ -71,7 +65,6 @@ public class Controller {
 
     private int bet = 0;
     private int bank;
-    private boolean canDoubleDown;
     @FXML
     Text bankrupt;
 
@@ -83,6 +76,8 @@ public class Controller {
     TextField textStatus;
     @FXML
     TextField textPlayerCount;
+    @FXML
+    TextField chatField;
 
     @FXML
     Button dealButton;
@@ -93,7 +88,8 @@ public class Controller {
     @FXML
     Button doubleDown;
 
-
+    Timer timer;
+    TimerTask task;
     List<Text> textList = new ArrayList<>();
 
     public void setCurrentClient(Client currentClient) {
@@ -146,6 +142,16 @@ public class Controller {
 
         // Mettre à jour les valeurs des Text ici si nécessaire
         clearText();
+
+        chatField.setOnAction(e -> {
+            String inputText = chatField.getText();
+            try {
+                currentClient.sendMessage(inputText);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            chatField.clear();
+        });
     }
 
     /**
@@ -162,18 +168,23 @@ public class Controller {
             textStatus.setText("En attente des mises");
         }
 
+        if (tbsr.isGameFinished()) {
+            bankrupt.setText("Gain : " + currentClient.getGain() + "€");
+            bankrupt.setVisible(true);
+        }
+
         clearText();
         clearImage();
         textPlayerCount.setText("Joueurs connectés : " + tbsr.getClientList().size() + "/3");
 
         hitButton.setDisable(!currentClient.isMyTurn());
         standButton.setDisable(!currentClient.isMyTurn());
-        if(currentClient.getCurrentHand().getCardSRList().size()==2){
-            doubleDown.setDisable(false);
-        }else{
-            doubleDown.setDisable(true);
+        if (currentClient.isMyTurn()) doubleDown.setDisable(currentClient.getCurrentHand().getCardSRList().size() != 2);
+
+        if (currentClient.isMyTurn()) {
+            setTimer(30);
         }
-        logger.info("nbr carte : "+currentClient.getCurrentHand().getCardSRList().size()+"-- canDoubleDown : "+canDoubleDown);
+
         dealButton.setDisable(currentClient.hasBet());
 
         for (int i = 0; i < tbsr.getClientList().size(); i++) {
@@ -200,20 +211,57 @@ public class Controller {
         }
     }
 
+    public void cancelTimer() {
+        if (timer != null && task != null) {
+            timer.cancel();
+            task.cancel();
+        }
+    }
+
+    public void setTimer(int secondes) {
+        timer = new Timer();
+        final int[] tempsRestant = {secondes};
+
+        // Tâche pour mettre à jour l'affichage du temps restant
+        task = new TimerTask() {
+            @Override
+            public void run() {
+                if (tempsRestant[0] > 0) {
+                    bankrupt.setText("Temps restant : " + tempsRestant[0]);
+                    bankrupt.setVisible(true);
+                    tempsRestant[0]--;
+                } else {
+                    bankrupt.setText("");
+                    bankrupt.setVisible(false);
+                    cancelTimer();
+                    try {
+                        currentClient.setWantToStay(true, true);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    blockAction();
+                }
+            }
+        };
+
+        // Tâche pour le délai de 30 secondes
+        timer.schedule(task, 0, 1000); // Mettre à jour toutes les secondes
+    }
+
     @FXML
     private void hitACard() throws IOException {
         currentClient.setWantACard(true, true);
         doubleDown.setDisable(true);
-        canDoubleDown = false;
         blockAction();
+        cancelTimer();
     }
 
     @FXML
     private void stand() throws IOException {
         currentClient.setWantToStay(true, true);
         doubleDown.setDisable(true);
-        canDoubleDown = false;
         blockAction();
+        cancelTimer();
     }
 
     private void clearImage() {
@@ -222,7 +270,6 @@ public class Controller {
                 imageView.setImage(null);
             }
         }
-        canDoubleDown = true;
     }
 
     private void clearText() {
@@ -231,10 +278,16 @@ public class Controller {
         }
     }
 
+    public void resetBankrupt() {
+        bankrupt.setVisible(false);
+        bankrupt.setText("Banque insuffisante");
+    }
+
     @FXML
     public void Bet1() {
+        resetBankrupt();
 
-        if ((currentClient.canBet(bet-1))) {
+        if ((currentClient.canBet(bet + 1))) {
             bet += 1;
             bank -= 1;
             currentBet.setText("Mise : " + bet + "€");
@@ -247,8 +300,9 @@ public class Controller {
 
     @FXML
     public void Bet5() {
+        resetBankrupt();
 
-        if ((currentClient.canBet(bet-5))) {
+        if ((currentClient.canBet(bet + 5))) {
             bet += 5;
             bank -= 5;
             currentBet.setText("Mise : " + bet + "€");
@@ -261,8 +315,9 @@ public class Controller {
 
     @FXML
     public void Bet25() {
+        resetBankrupt();
 
-        if ((currentClient.canBet(bet-25))) {
+        if ((currentClient.canBet(bet + 25))) {
             bet += 25;
             bank -= 25;
             currentBet.setText("Mise : " + bet + "€");
@@ -275,8 +330,9 @@ public class Controller {
 
     @FXML
     public void Bet50() {
+        resetBankrupt();
 
-        if ((currentClient.canBet(bet-50))) {
+        if ((currentClient.canBet(bet + 50))) {
             bet += 50;
             bank -= 50;
             currentBet.setText("Mise : " + bet + "€");
@@ -289,8 +345,9 @@ public class Controller {
 
     @FXML
     public void Bet100() {
+        resetBankrupt();
 
-        if ((currentClient.canBet(bet-100))) {
+        if ((currentClient.canBet(bet + 100))) {
             bet += 100;
             bank -= 100;
             currentBet.setText("Mise : " + bet + "€");
@@ -303,8 +360,9 @@ public class Controller {
 
     @FXML
     public void Bet500() {
+        resetBankrupt();
 
-        if ((currentClient.canBet(bet-500))) {
+        if ((currentClient.canBet(bet + 500))) {
             bet += 500;
             bank -= 500;
             currentBet.setText("Mise : " + bet + "€");
@@ -322,8 +380,7 @@ public class Controller {
         bank = currentClient.getBalance();
         currentBet.setText("Mise : " + bet + "€");
         currentBalance.setText("Banque : " + bank + "€");
-        bankrupt.setVisible(false);
-
+        resetBankrupt();
     }
 
     @FXML
@@ -337,8 +394,8 @@ public class Controller {
             bet = 0;
             currentBet.setText("Mise : " + bet + "€");
             currentBalance.setText("Banque : " + currentClient.getBalance() + "€");
-            bankrupt.setVisible(false);
-        } catch (IOException ex) {
+            resetBankrupt();
+        } catch (IOException | InterruptedException ex) {
             throw new RuntimeException(ex);
         }
 
@@ -348,13 +405,17 @@ public class Controller {
     public void DoubleDown() {
 
         try {
-            currentClient.setBalance(currentClient.getBalance()-currentClient.getCurrentBet(),false);
-            currentClient.setCurrentBet(currentClient.getCurrentBet()*2);
-            currentClient.setWantACard(true,false);
-            currentClient.setWantToStay(true,true);
-            doubleDown.setDisable(true);
-            canDoubleDown = false;
-        } catch (IOException ex) {
+            if(currentClient.canBet(bet * 2)){
+                currentClient.setBalance(currentClient.getBalance() - currentClient.getCurrentBet(), false);
+                currentClient.setCurrentBet(currentClient.getCurrentBet() * 2);
+                currentClient.setWantACard(true, false);
+                currentClient.setWantToStay(true, true);
+                doubleDown.setDisable(true);
+                cancelTimer();
+            } else {
+                bankrupt.setVisible(true);
+            }
+        } catch (IOException | InterruptedException ex) {
             throw new RuntimeException(ex);
         }
 
@@ -365,5 +426,9 @@ public class Controller {
         standButton.setDisable(true);
         hitButton.setDisable(true);
         doubleDown.setDisable(true);
+    }
+
+    public void setChat(String s) {
+        chatTextArea.appendText(s + "\n");
     }
 }

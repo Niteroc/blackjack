@@ -50,6 +50,7 @@ public class TableHandler implements Runnable {
 
     private boolean endGame = false;
 
+
     /**
      * Initialise un gestionnaire de table.
      *
@@ -63,6 +64,8 @@ public class TableHandler implements Runnable {
      */
     @Override
     public void run() {
+        logger.info("Démarrage du gestionnaire de la table de jeu n°" + id);
+
         while (true) {
             try {
 
@@ -167,8 +170,7 @@ public class TableHandler implements Runnable {
 
                 gameInProgress = true;
                 endGame = false;
-                logger.info("Les jeux sont faits");
-                logger.info("Rien ne va plus");
+                logger.info("Les jeux sont faits \n. Rien ne va plus");
 
                 if (nbrGame % 10 == 0) setCardGame(); // on mélange les cartes tous les 10 tours
                 for (Client client : clientList) {
@@ -234,8 +236,7 @@ public class TableHandler implements Runnable {
 
         } catch (Exception ignored) {
 
-        }
-        finally {
+        } finally {
             synchronized (lock) {
                 sendTableLaunched = false;
                 lock.notify(); // Réveille le thread s'il est en attente
@@ -278,17 +279,17 @@ public class TableHandler implements Runnable {
     /**
      * Envoie la table mise à jour aux clients connectés.
      *
-     * @throws IOException En cas d'erreur d'entrée/sortie lors de l'écriture de la table vers les clients.
+     * @throws IOException          En cas d'erreur d'entrée/sortie lors de l'écriture de la table vers les clients.
      * @throws InterruptedException En cas d'interruption du thread pendant l'envoi de la table.
      */
-    private synchronized void writeObject() throws IOException, InterruptedException {
+    private synchronized void writeTable() throws IOException, InterruptedException {
         for (ClientHandler clientHandler : clientHandlerList) {
             ObjectOutputStream writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
             writerObject.writeObject(tbsr);
             writerObject.flush();
             logger.info("Table " + tbsr + " envoyée à " + clientHandler.getClient().getPseudo());
         }
-        Thread.sleep(2000);
+        Thread.sleep(500);
     }
 
     /**
@@ -306,25 +307,49 @@ public class TableHandler implements Runnable {
         tbsr.updateClient(c);
         clientList = tbsr.getClientList();
 
-        for(Client client : currentClientList){
+        for (Client client : currentClientList) {
             client = clientList.get(clientList.indexOf(client));
-            currentClientList.set(currentClientList.indexOf(client),client);
+            currentClientList.set(currentClientList.indexOf(client), client);
         }
-        Thread.sleep(2000);
+        Thread.sleep(500);
         sendTable(firstConnection);
+    }
+
+    public synchronized void updateChat(String s) throws InterruptedException, IOException {
+
+        synchronized (lock) {
+            sendTableLaunched = true;
+        }
+
+        Thread.sleep(500);
+        writeMessage(s);
+
+        synchronized (lock) {
+            sendTableLaunched = false;
+            lock.notify(); // Réveille le thread s'il est en attente
+        }
+    }
+
+    private void writeMessage(String s) throws IOException, InterruptedException {
+        for (ClientHandler clientHandler : clientHandlerList) {
+            ObjectOutputStream writerObject = new ObjectOutputStream(clientHandler.getClientSocket().getOutputStream());
+            writerObject.writeObject(s);
+            writerObject.flush();
+        }
+        Thread.sleep(500);
     }
 
     /**
      * Vérifie s'il est nécessaire d'envoyer une mise à jour de la table aux clients connectés.
      *
-     * @throws IOException En cas d'erreur d'entrée/sortie lors de la vérification et de l'envoi de la table.
+     * @throws IOException          En cas d'erreur d'entrée/sortie lors de la vérification et de l'envoi de la table.
      * @throws InterruptedException En cas d'interruption du thread pendant l'envoi de la table.
      */
     private synchronized void needToSend(boolean force) throws IOException, InterruptedException {
 
         boolean needToSend = false;
 
-        if(currentClientList.size() == clientListSave.size()){
+        if (currentClientList.size() == clientListSave.size()) {
             for (int i = 0; i < clientListSave.size(); i++) {
                 if (!currentClientList.get(i).hasSameProperty(clientListSave.get(i))) {
                     needToSend = true;
@@ -337,11 +362,11 @@ public class TableHandler implements Runnable {
             }
         }
 
-        if(currentClientList.size() != clientListSave.size()) {
+        if (currentClientList.size() != clientListSave.size()) {
             needToSend = true;
         }
 
-        if(!gameInProgress) needToSend = true;
+        if (!gameInProgress) needToSend = true;
 
         if (needToSend || force) {
             // On récupère les clients sans leurs références
@@ -353,7 +378,7 @@ public class TableHandler implements Runnable {
             // On récupère la main du dealer sans sa référence
             dealerHandSave = dealerHand.clone();
 
-            writeObject();
+            writeTable();
         }
     }
 
